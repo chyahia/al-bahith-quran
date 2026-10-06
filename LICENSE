@@ -1,6 +1,31 @@
 Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)
 
-This work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License.
+Scope: This license applies to the SOURCE CODE of this project (Python, HTML,
+CSS, JavaScript files and documentation written for this project).
+
+The data files are NOT covered by this license. They remain under their
+original licenses:
+- Quran text (quran.db, table "ayas"): Tanzil Project (https://tanzil.net),
+  files quran-simple-clean, quran-simple and quran-uthmani.
+  Creative Commons Attribution 3.0. The text is distributed verbatim;
+  changing it is not allowed. See TANZIL_LICENSE.txt.
+- Roots (quran.db, tables "roots" and "root_words"): Quranic Universal
+  Library (QUL) by Tarteel, "Word root" resource
+  (https://qul.tarteel.ai/resources/morphology), under the terms QUL
+  sets for that resource.
+- Morphology (quran.db, table "morphology"): Quranic Arabic Corpus v0.4
+  (https://corpus.quran.com), Kais Dukes, University of Leeds,
+  GNU General Public License. Tags converted to Arabic grammatical terms.
+  See QURANIC_CORPUS_LICENSE.txt.
+- MASAQ.db: MASAQ - Morphologically-Analyzed and Syntactically-Annotated
+  Quran Dataset, version 5, Sawalha et al., DOI: 10.17632/9yvrzxktmr,
+  Creative Commons Attribution 3.0. The included copy has been MODIFIED
+  (corrections documented in the docs/ folder).
+
+------------------------------------------------------------------------
+
+This work (the source code) is licensed under a Creative Commons
+Attribution-NonCommercial 4.0 International License.
 
 You are free to:
 - Share: copy and redistribute the material in any medium or format.
