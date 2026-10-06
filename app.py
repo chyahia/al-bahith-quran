@@ -31,9 +31,9 @@ app = Flask(__name__,
             template_folder=resource_path('templates'),
             static_folder=resource_path('static'))
 DB_PATH = resource_path('quran.db')
-IS_LOCAL = True    # غيرها إلى False عند الرفع على موقع الويب المجاني
+IS_LOCAL = False    # غيرها إلى False عند الرفع على موقع الويب المجاني
 
-SHOW_ADMIN_TAB = True    # True = يظهر التبويب الإداري (للمطوّر) | False = يُخفى ويُحجب (لنسخة exe للمستخدمين)
+SHOW_ADMIN_TAB = False    # True = يظهر التبويب الإداري (للمطوّر) | False = يُخفى ويُحجب (لنسخة exe للمستخدمين)
 
 # مسارات التبويب الإداري وأدواته، تُحجب كلها حين تكون SHOW_ADMIN_TAB = False
 ADMIN_PATH_PREFIXES = ('/tab/consistency', '/api/consistency_', '/api/root_alignment_',
