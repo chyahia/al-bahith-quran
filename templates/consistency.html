@@ -1,0 +1,578 @@
+<div class="card" style="padding: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">فحص التماسك الداخلي لقاعدة البيانات</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            أداة إدارية تفحص قاعدة MASAQ.db آليًا بحثًا عن تناقضات محتملة بين الوسم الصرفي
+            (Morph_Tag) والحالة الإعرابية (Case_Mood) والموقع النحوي (Syntactic_Role)،
+            وفق أربع قواعد منطقية ثابتة. هذا الفحص <b>لا يُصحّح شيئًا تلقائيًا</b>، فقط يكتشف
+            المواضع المشبوهة ويعرضها لمراجعتك.
+        </p>
+    </div>
+
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnConsistencyCheck" class="btn-icon" style="background: #8e44ad;" onclick="runConsistencyCheck()">فحص التماسك 🔍</button>
+        <button id="btnConsistencyExport" class="btn-icon" style="background: #16a085;" onclick="exportConsistencyExcel()">تصدير للمراجعة 📤</button>
+    </div>
+
+    <div id="consistencyResultsBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="consistencyLoader" style="display: none; text-align: center; padding: 15px; color: #8e44ad; font-weight: bold;">جاري فحص القاعدة بالكامل... ⏳</div>
+        <div id="consistencySummary" style="font-weight: bold; margin-bottom: 12px;"></div>
+        <div id="consistencyTables"></div>
+    </div>
+</div>
+
+<div class="card" style="padding: 20px; margin-top: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">فحص ربط الجذور بين القاعدتين</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            يتحقق أن كل جذر مسجَّل في <b>quran.db</b> تقابله في <b>MASAQ.db</b> كلمة تحمل حروفه،
+            لكشف أي انزياح في ترقيم الكلمات (دمج أو فصل) يُسقط مواضع من البحث بالجذر.
+            النتائج مقسومة إلى <b>مشتبه جديد</b> يحتاج مراجعة، و<b>ضجيج إعلال معروف</b> (ماء، يك، مدكر...).
+            شغّله بعد أي تحديث للقاعدتين أو تعديل للقواميس. <b>لا يُعدّل شيئًا.</b>
+        </p>
+    </div>
+
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnRootAlignCheck" class="btn-icon" style="background: #2980b9;" onclick="runRootAlignmentCheck()">فحص ربط الجذور 🔗</button>
+        <button id="btnRootAlignExport" class="btn-icon" style="background: #16a085;" onclick="exportRootAlignment()">تصدير للمراجعة 📤</button>
+    </div>
+
+    <div id="rootAlignBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="rootAlignLoader" style="display: none; text-align: center; padding: 15px; color: #2980b9; font-weight: bold;">جاري فحص ربط الجذور... ⏳</div>
+        <div id="rootAlignSummary" style="font-weight: bold; margin-bottom: 12px;"></div>
+        <div id="rootAlignTables"></div>
+    </div>
+</div>
+
+<div class="card" style="padding: 20px; margin-top: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">مقارنة أعداد الجذور بين التبويبين</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            يمرّ على كل جذر ويقارن عدد مواضعه في <b>التبويب 1</b> (سجلات quran.db) بعدد نتائج
+            <b>التبويب 2</b> (البحث بالجذر)، ويعرض الجذور المختلفة فقط مع الموضع الناقص وسببه.
+            يكشف ما لا يكشفه فحص الربط، مثل أخطاء اختيار الجذع. <b>لا يُعدّل شيئًا.</b>
+        </p>
+    </div>
+
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnRootCountCheck" class="btn-icon" style="background: #c0392b;" onclick="runRootCountCheck()">مقارنة الأعداد ⚖️</button>
+        <button id="btnRootCountExport" class="btn-icon" style="background: #16a085;" onclick="exportRootCount()">تصدير للمراجعة 📤</button>
+    </div>
+
+    <div id="rootCountBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="rootCountLoader" style="display: none; text-align: center; padding: 15px; color: #c0392b; font-weight: bold;">جاري مقارنة الجذور كلها... ⏳</div>
+        <div id="rootCountSummary" style="font-weight: bold; margin-bottom: 12px;"></div>
+        <div id="rootCountTables"></div>
+    </div>
+</div>
+
+<div class="card" style="padding: 20px; margin-top: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">فحص وسم الكلمات ذات الجذور</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            كل كلمة ينسب لها <b>quran.db</b> جذرًا يُفترض أن جذعها اسم أو فعل. فإن وُسم الجذع في
+            <b>MASAQ.db</b> ضميرًا أو حرف جر أو حرف عطف فهو مشتبه (كما حدث مع «هَمَّ» و«مَنَّ»).
+            النتائج مجمّعة بحسب (الجذر، الوسم)، والمجموعات الصغيرة هي الأرجح أن تكون أخطاء وسم.
+            <b>لا يُعدّل شيئًا.</b>
+        </p>
+    </div>
+
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnRootTagCheck" class="btn-icon" style="background: #8e44ad;" onclick="runRootTagCheck()">فحص وسم الجذوع 🏷️</button>
+        <button id="btnRootTagExport" class="btn-icon" style="background: #16a085;" onclick="exportRootTag()">تصدير للمراجعة 📤</button>
+    </div>
+
+    <div id="rootTagBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="rootTagLoader" style="display: none; text-align: center; padding: 15px; color: #8e44ad; font-weight: bold;">جاري فحص الوسوم... ⏳</div>
+        <div id="rootTagSummary" style="font-weight: bold; margin-bottom: 12px;"></div>
+        <div id="rootTagTables"></div>
+    </div>
+</div>
+
+<div class="card" style="padding: 20px; margin-top: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">مقارنة الفعل والاسم مع جدول morphology</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            رأي ثانٍ مستقل: لكل كلمة يسأل هل فيها فعل في <b>MASAQ.db</b> وفي جدول <b>morphology</b> داخل
+            <b>quran.db</b>، ويعرض الكلمات التي اختلفا فيها. يكشف أفعالًا موسومة أسماء أو حروفًا وبالعكس.
+            كلا المصدرين قد يخطئ، فالنتائج <b>مرشحات للمراجعة</b> لا أحكام. والمواضع التي راجعناها وتركناها
+            عمدًا تظهر في فئة مستقلة. <b>لا يُعدّل شيئًا.</b>
+        </p>
+    </div>
+
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnCrossMorph" class="btn-icon" style="background: #d35400;" onclick="runCrossMorph()">مقارنة الأفعال ⚖️</button>
+        <button id="btnCrossMorphExport" class="btn-icon" style="background: #16a085;" onclick="exportCrossMorph()">تصدير للمراجعة 📤</button>
+    </div>
+
+    <div id="crossMorphBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="crossMorphLoader" style="display: none; text-align: center; padding: 15px; color: #d35400; font-weight: bold;">جاري المقارنة... ⏳</div>
+        <div id="crossMorphSummary" style="font-weight: bold; margin-bottom: 12px;"></div>
+        <div id="crossMorphTables"></div>
+    </div>
+</div>
+
+<div class="card" style="padding: 20px; margin-top: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">مقارنة نوع الكلمة بين التبويبين</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            لكل موضع جذر في <b>root_words</b> يقارن نوع الكلمة (اسم أو فعل) كما تحسبه لوحة
+            «الأسماء / الأفعال» في <b>التبويب 1</b>، بنوع الجذع الذي يختاره البحث بالجذر في <b>التبويب 2</b>.
+            الفرق في النوع يعني أن أحد التبويبين يقرأ مقطعًا غير الكلمة نفسها (أداة، بادئة، أو كلمة مجاورة).
+            معيار النجاح: <b>صفر فروق جديدة</b>. واختلاف التفصيل مع اتفاق النوع (حالة الاسم أو زمن الفعل) يظهر
+            في فئة للاطلاع. <b>لا يُعدّل شيئًا.</b>
+        </p>
+    </div>
+
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnWordKind" class="btn-icon" style="background: #2c3e50;" onclick="runWordKindCheck()">مقارنة نوع الكلمة 🔀</button>
+        <button id="btnWordKindExport" class="btn-icon" style="background: #16a085;" onclick="exportWordKind()">تصدير للمراجعة 📤</button>
+    </div>
+
+    <div id="wordKindBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="wordKindLoader" style="display: none; text-align: center; padding: 15px; color: #2c3e50; font-weight: bold;">جاري المقارنة... ⏳</div>
+        <div id="wordKindSummary" style="font-weight: bold; margin-bottom: 12px;"></div>
+        <div id="wordKindTables"></div>
+    </div>
+</div>
+
+<script>
+    async function runConsistencyCheck() {
+        const box = document.getElementById('consistencyResultsBox');
+        const loader = document.getElementById('consistencyLoader');
+        const summaryEl = document.getElementById('consistencySummary');
+        const tablesEl = document.getElementById('consistencyTables');
+
+        box.style.display = 'block';
+        loader.style.display = 'block';
+        summaryEl.innerHTML = '';
+        tablesEl.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/consistency_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+
+            if (data.error) {
+                summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${data.error}</span>`;
+                return;
+            }
+
+            const totalIssues = Object.values(data.summary).reduce((a, b) => a + b, 0);
+            if (totalIssues === 0) {
+                summaryEl.innerHTML = `<span style="color:#27ae60">✅ لم يُكتشف أي تناقض منطقي وفق القواعد الأربع الحالية.</span>`;
+                return;
+            }
+            summaryEl.innerHTML = `⚠️ إجمالي المواضع المشبوهة: <b>${totalIssues}</b> (هذه نتائج تحتاج مراجعة بشرية، لا تصحيحًا تلقائيًا)`;
+
+            for (const ruleKey in data.issues) {
+                const rows = data.issues[ruleKey];
+                if (rows.length === 0) continue;
+                const label = data.labels[ruleKey];
+
+                let html = `<div style="margin-top: 18px;"><h4 style="color:#8e44ad; margin-bottom:8px;">${label} (${rows.length})</h4>`;
+                html += `<div style="max-height: 300px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">`;
+                html += `<table style="width:100%; border-collapse: collapse; font-size: 14px;">`;
+                html += `<thead style="position:sticky; top:0; background: var(--card);"><tr>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الموضع</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الكلمة</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">Morph_Tag</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">Syntactic_Role</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">Case_Mood</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);"></th>
+                    </tr></thead><tbody>`;
+
+                rows.slice(0, 300).forEach(r => {
+                    html += `<tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:6px;">${r.sura_name || r.Sura_No}:${r.Verse_No}</td>
+                        <td style="padding:6px; font-family:'Traditional Arabic'; font-size:17px;">${r.Word}</td>
+                        <td style="padding:6px;">${r.Morph_Tag || ''}</td>
+                        <td style="padding:6px;">${r.Syntactic_Role || ''}</td>
+                        <td style="padding:6px;">${r.Case_Mood || ''}</td>
+                        <td style="padding:6px;"><button class="btn-tool" onclick="openConsistencyWord(${r.Sura_No}, ${r.Verse_No}, '${(r.Word||'').replace(/'/g,"\\'")}')">فتح في البحث النحوي 🔎</button></td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div>`;
+                if (rows.length > 300) {
+                    html += `<div style="font-size:13px; color:var(--text-muted); margin-top:4px;">يُعرض أول 300 موضع من ${rows.length}؛ استخدم "تصدير للمراجعة" للحصول على القائمة كاملة.</div>`;
+                }
+                html += `</div>`;
+                tablesEl.innerHTML += html;
+            }
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${err}</span>`;
+        }
+    }
+
+    // ينتقل إلى تبويب "البحث النحوي" نفسه (يحمّله أولاً إن لم يكن محمَّلاً) ثم يملأ حقل
+    // البحث بالكلمة المطلوبة ويُشغّل البحث تلقائيًا، لمراجعة الموضع المشبوه مباشرة
+    async function openConsistencyWord(suraNo, verseNo, word) {
+        await loadTab('grammar');
+        const searchInput = document.getElementById('grammar_search_text');
+        const suraSelect = document.getElementById('sura_filter_grammar');
+        if (!searchInput || !suraSelect) {
+            alert('تعذّر فتح لوحة البحث النحوي. يرجى الانتقال إليها يدويًا.');
+            return;
+        }
+        searchInput.value = strip_diacritics_js(word);
+        const containsRadio = document.querySelector('input[name="grammar_search_type"][value="contains"]');
+        if (containsRadio) containsRadio.checked = true;
+        suraSelect.value = suraNo;
+        if (typeof performGrammarSearch === 'function') {
+            performGrammarSearch();
+        }
+    }
+
+    function strip_diacritics_js(word) {
+        return word.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+    }
+
+    function exportConsistencyExcel() {
+        window.location.href = '/api/consistency_export';
+    }
+
+        async function runRootAlignmentCheck() {
+        const box = document.getElementById('rootAlignBox');
+        const loader = document.getElementById('rootAlignLoader');
+        const summaryEl = document.getElementById('rootAlignSummary');
+        const tablesEl = document.getElementById('rootAlignTables');
+
+        box.style.display = 'block';
+        loader.style.display = 'block';
+        summaryEl.innerHTML = '';
+        tablesEl.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/root_alignment_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+
+            if (data.error) {
+                summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${data.error}</span>`;
+                return;
+            }
+
+            const s = data.summary;
+            let head = `سجلات فُحصت: <b>${s.total_checked}</b> — `;
+            if (s.real === 0) {
+                head += `<span style="color:#27ae60">✅ لا مشتبه جديد</span>`;
+            } else {
+                head += `<span style="color:#e67e22">⚠️ مشتبه جديد: <b>${s.real}</b></span>`;
+            }
+            head += ` — ضجيج إعلال معروف: <b>${s.noise}</b>`;
+            summaryEl.innerHTML = head;
+
+            ['REAL', 'NOISE'].forEach(cat => {
+                const rows = data.issues.filter(i => i.category === cat);
+                if (rows.length === 0) return;
+                const color = cat === 'REAL' ? '#e67e22' : '#7f8c8d';
+
+                let html = `<div style="margin-top: 18px;"><h4 style="color:${color}; margin-bottom:8px;">${data.labels[cat]} (${rows.length})</h4>`;
+                html += `<div style="max-height: 300px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">`;
+                html += `<table style="width:100%; border-collapse: collapse; font-size: 14px;">`;
+                html += `<thead style="position:sticky; top:0; background: var(--card);"><tr>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الموضع</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">رقم الكلمة</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الجذر</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">كلمة MASAQ</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">المشكلة</th>
+                    </tr></thead><tbody>`;
+                rows.forEach(r => {
+                    html += `<tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:6px;">${r.sura_name}:${r.verse_no}</td>
+                        <td style="padding:6px;">${r.orig_word_no}${r.adjusted_word_no !== r.orig_word_no ? ' ← ' + r.adjusted_word_no : ''}</td>
+                        <td style="padding:6px;">${r.root}</td>
+                        <td style="padding:6px; font-family:'Traditional Arabic'; font-size:17px;">${r.masaq_word}</td>
+                        <td style="padding:6px;">${r.problem}</td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+                tablesEl.innerHTML += html;
+            });
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${err}</span>`;
+        }
+    }
+
+    function exportRootAlignment() {
+        window.location.href = '/api/root_alignment_export';
+    }
+
+        async function runRootCountCheck() {
+        const box = document.getElementById('rootCountBox');
+        const loader = document.getElementById('rootCountLoader');
+        const summaryEl = document.getElementById('rootCountSummary');
+        const tablesEl = document.getElementById('rootCountTables');
+
+        box.style.display = 'block';
+        loader.style.display = 'block';
+        summaryEl.innerHTML = '';
+        tablesEl.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/root_count_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+
+            if (data.error) {
+                summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${data.error}</span>`;
+                return;
+            }
+
+            const s = data.summary;
+            if (s.mismatched === 0) {
+                summaryEl.innerHTML = `جذور فُحصت: <b>${s.roots_checked}</b> — <span style="color:#27ae60">✅ التبويبان متطابقان في كل الجذور</span>`;
+                return;
+            }
+            summaryEl.innerHTML = `جذور فُحصت: <b>${s.roots_checked}</b> — <span style="color:#e67e22">⚠️ جذور مختلفة: <b>${s.mismatched}</b></span>`;
+
+            let html = `<div style="max-height: 450px; overflow-y: auto; border:1px solid var(--border); border-radius:6px; margin-top:12px;">`;
+            html += `<table style="width:100%; border-collapse: collapse; font-size: 14px;">`;
+            html += `<thead style="position:sticky; top:0; background: var(--card);"><tr>
+                <th style="padding:6px; border-bottom:1px solid var(--border);">الجذر</th>
+                <th style="padding:6px; border-bottom:1px solid var(--border);">التبويب 1</th>
+                <th style="padding:6px; border-bottom:1px solid var(--border);">التبويب 2</th>
+                <th style="padding:6px; border-bottom:1px solid var(--border);">الفرق</th>
+                <th style="padding:6px; border-bottom:1px solid var(--border);">الأسباب</th>
+                </tr></thead><tbody>`;
+
+            data.issues.forEach(r => {
+                let note = '';
+                if (r.real_count !== null && r.real_count !== r.tab2) {
+                    note = `<div style="color:#e74c3c; font-size:13px;">⚠️ البحث الفعلي أعاد ${r.real_count} لا ${r.tab2}، فالمحاكاة لا تطابقه</div>`;
+                }
+                const lines = r.details.map(d =>
+                    `${d.sura}:${d.verse} (كلمة ${d.orig}${d.adj !== null && d.adj !== d.orig ? ' ← ' + d.adj : ''}) — ${d.reason}${d.word ? ' — ' + d.word : ''}`
+                ).join('<br>');
+                html += `<tr style="border-bottom:1px solid var(--border); vertical-align: top;">
+                    <td style="padding:6px;"><b>${r.root}</b></td>
+                    <td style="padding:6px;">${r.tab1}</td>
+                    <td style="padding:6px;">${r.tab2}</td>
+                    <td style="padding:6px; color:#e74c3c;">${r.diff}</td>
+                    <td style="padding:6px; font-size:13px; line-height:1.7;">${lines}${note}</td>
+                    </tr>`;
+            });
+            html += `</tbody></table></div>`;
+            tablesEl.innerHTML = html;
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${err}</span>`;
+        }
+    }
+
+    function exportRootCount() {
+        window.location.href = '/api/root_count_export';
+    }
+
+        async function runRootTagCheck() {
+        const box = document.getElementById('rootTagBox');
+        const loader = document.getElementById('rootTagLoader');
+        const summaryEl = document.getElementById('rootTagSummary');
+        const tablesEl = document.getElementById('rootTagTables');
+
+        box.style.display = 'block';
+        loader.style.display = 'block';
+        summaryEl.innerHTML = '';
+        tablesEl.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/root_tag_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+
+            if (data.error) {
+                summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${data.error}</span>`;
+                return;
+            }
+
+            const s = data.summary;
+            let head = `مواضع فُحصت: <b>${s.checked}</b> — `;
+            if (s.new_groups === 0) {
+                head += `<span style="color:#27ae60">✅ لا مجموعات جديدة مشتبهة</span>`;
+            } else {
+                head += `<span style="color:#e67e22">⚠️ مجموعات جديدة: <b>${s.new_groups}</b> (${s.new_words} موضعًا)</span>`;
+            }
+            head += ` — معتمدة سليمة: <b>${s.known_groups}</b>`;
+            summaryEl.innerHTML = head;
+
+            ['NEW', 'KNOWN'].forEach(cat => {
+                const groups = data.issues.filter(g => g.category === cat);
+                if (groups.length === 0) return;
+                const color = cat === 'NEW' ? '#e67e22' : '#7f8c8d';
+
+                let html = `<div style="margin-top: 18px;"><h4 style="color:${color}; margin-bottom:8px;">${data.labels[cat]} (${groups.length})</h4>`;
+                html += `<div style="max-height: 400px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">`;
+                html += `<table style="width:100%; border-collapse: collapse; font-size: 14px;">`;
+                html += `<thead style="position:sticky; top:0; background: var(--card);"><tr>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الجذر</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الوسم</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">العدد</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">أمثلة (ID / المقطع)</th>
+                    </tr></thead><tbody>`;
+                groups.forEach(g => {
+                    const ex = g.items.slice(0, 5).map(it =>
+                        `${it.sura_name}:${it.verse_no} — <span style="font-family:'Traditional Arabic'; font-size:17px;">${it.word}</span> [${it.id}/${it.segment_no}]`
+                    ).join('<br>');
+                    const more = g.items.length > 5 ? `<div style="font-size:13px; color:var(--text-muted);">و${g.items.length - 5} أخرى (في ملف التصدير)</div>` : '';
+                    html += `<tr style="border-bottom:1px solid var(--border); vertical-align: top;">
+                        <td style="padding:6px;"><b>${g.root}</b></td>
+                        <td style="padding:6px;">${g.tag}</td>
+                        <td style="padding:6px;">${g.count}</td>
+                        <td style="padding:6px; font-size:13px; line-height:1.8;">${ex}${more}</td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+                tablesEl.innerHTML += html;
+            });
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${err}</span>`;
+        }
+    }
+
+    function exportRootTag() {
+        window.location.href = '/api/root_tag_export';
+    }
+
+        async function runCrossMorph() {
+        const box = document.getElementById('crossMorphBox');
+        const loader = document.getElementById('crossMorphLoader');
+        const summaryEl = document.getElementById('crossMorphSummary');
+        const tablesEl = document.getElementById('crossMorphTables');
+
+        box.style.display = 'block';
+        loader.style.display = 'block';
+        summaryEl.innerHTML = '';
+        tablesEl.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/cross_morph_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+
+            if (data.error) {
+                summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${data.error}</span>`;
+                return;
+            }
+
+            const s = data.summary;
+            const pct = ((s.agree * 100) / s.compared).toFixed(2);
+            let head = `كلمات قورنت: <b>${s.compared}</b> — متفقة: <b>${s.agree}</b> (${pct}%) — `;
+            head += (s.new === 0)
+                ? `<span style="color:#27ae60">✅ لا مرشحات جديدة</span>`
+                : `<span style="color:#e67e22">⚠️ مرشحات جديدة: <b>${s.new}</b></span>`;
+            head += ` — راجعناها وتُركت عمدًا: <b>${s.known}</b>`;
+            summaryEl.innerHTML = head;
+
+            ['NEW', 'KNOWN'].forEach(cat => {
+                const rows = data.issues.filter(i => i.category === cat);
+                if (rows.length === 0) return;
+                const color = cat === 'NEW' ? '#e67e22' : '#7f8c8d';
+
+                let html = `<div style="margin-top: 18px;"><h4 style="color:${color}; margin-bottom:8px;">${data.labels[cat]} (${rows.length})</h4>`;
+                html += `<div style="max-height: 380px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">`;
+                html += `<table style="width:100%; border-collapse: collapse; font-size: 14px;">`;
+                html += `<thead style="position:sticky; top:0; background: var(--card);"><tr>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">النوع</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الموضع</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الكلمة</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">أوسمة MASAQ</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">morphology</th>
+                    </tr></thead><tbody>`;
+                rows.forEach(r => {
+                    html += `<tr style="border-bottom:1px solid var(--border); vertical-align: top;">
+                        <td style="padding:6px; font-size:13px;">${data.kinds[r.kind]}</td>
+                        <td style="padding:6px;">${r.sura_name}:${r.verse_no} (كلمة ${r.word_no})</td>
+                        <td style="padding:6px; font-family:'Traditional Arabic'; font-size:17px;">${r.word}</td>
+                        <td style="padding:6px; font-size:13px;">${r.masaq_tags}</td>
+                        <td style="padding:6px; font-size:13px;">${r.corpus_parts}</td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+                tablesEl.innerHTML += html;
+            });
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${err}</span>`;
+        }
+    }
+
+    function exportCrossMorph() {
+        window.location.href = '/api/cross_morph_export';
+    }
+
+    async function runWordKindCheck() {
+        const box = document.getElementById('wordKindBox');
+        const loader = document.getElementById('wordKindLoader');
+        const summaryEl = document.getElementById('wordKindSummary');
+        const tablesEl = document.getElementById('wordKindTables');
+
+        box.style.display = 'block';
+        loader.style.display = 'block';
+        summaryEl.innerHTML = '';
+        tablesEl.innerHTML = '';
+
+        try {
+            const response = await fetch('/api/word_kind_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+
+            if (data.error) {
+                summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${data.error}</span>`;
+                return;
+            }
+
+            const s = data.summary;
+            let head = `مواضع فُحصت: <b>${s.checked}</b> — متطابقة تمامًا: <b>${s.agree}</b> — `;
+            head += (s.new === 0)
+                ? `<span style="color:#27ae60">✅ لا فروق جديدة في النوع</span>`
+                : `<span style="color:#e67e22">⚠️ فروق جديدة في النوع: <b>${s.new}</b></span>`;
+            head += ` — مقبولة بعد مراجعة: <b>${s.known}</b> — اختلاف تفصيل للاطلاع: <b>${s.detail}</b>`;
+            head += `<br><span style="font-weight:normal; font-size:13px;">اسم أداة متفق عليه (كيف، أنّى، أيّ، كُلَّمَا): ${s.nominal} — غير مصنَّفة في التبويبين معًا: ${s.both_unclassified}</span>`;
+            summaryEl.innerHTML = head;
+
+            const MAX_ROWS = 500;
+            ['NEW', 'KNOWN', 'DETAIL', 'NOMINAL', 'NONE'].forEach(cat => {
+                const rows = data.issues.filter(i => i.category === cat);
+                if (rows.length === 0) return;
+                const color = cat === 'NEW' ? '#e67e22' : '#7f8c8d';
+
+                let html = `<div style="margin-top: 18px;"><h4 style="color:${color}; margin-bottom:8px;">${data.labels[cat]} (${rows.length})</h4>`;
+                if (rows.length > MAX_ROWS) {
+                    html += `<p style="font-size:13px; margin-bottom:6px;">يُعرض أول ${MAX_ROWS} موضع؛ القائمة كاملة في ملف التصدير.</p>`;
+                }
+                html += `<div style="max-height: 380px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">`;
+                html += `<table style="width:100%; border-collapse: collapse; font-size: 14px;">`;
+                html += `<thead style="position:sticky; top:0; background: var(--card);"><tr>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الجذر</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الموضع</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">الكلمة</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">تسلسل الأوسمة</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">التبويب 1</th>
+                    <th style="padding:6px; border-bottom:1px solid var(--border);">التبويب 2</th>
+                    </tr></thead><tbody>`;
+                rows.slice(0, MAX_ROWS).forEach(r => {
+                    html += `<tr style="border-bottom:1px solid var(--border); vertical-align: top;">
+                        <td style="padding:6px;">${r.root}</td>
+                        <td style="padding:6px;">${r.sura_name}:${r.verse_no} (كلمة ${r.word_no})</td>
+                        <td style="padding:6px; font-family:'Traditional Arabic'; font-size:17px;">${r.word}</td>
+                        <td style="padding:6px; font-size:13px;">${r.tags}</td>
+                        <td style="padding:6px; font-size:13px;">${r.tab1}</td>
+                        <td style="padding:6px; font-size:13px;">${r.tab2}</td>
+                        </tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+                tablesEl.innerHTML += html;
+            });
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${err}</span>`;
+        }
+    }
+
+    function exportWordKind() {
+        window.location.href = '/api/word_kind_export';
+    }
+</script>

@@ -1,0 +1,683 @@
+<!-- ================= أزرار التحكم بالمقارنة ================= -->
+<div style="margin-bottom: 15px; text-align: left;">
+    <button id="btnGrammarCompare" onclick="toggleGrammarCompare()" style="background: var(--accent); color: white; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-weight: bold; font-family: 'Tajawal'; font-size: 16px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">+ إضافة مقارنة نحوية</button>
+</div>
+
+<!-- ================= لوحة البحث النحوي (البحث الأول) ================= -->
+<div class="search-panel" style="background-color: var(--bg); padding: 25px; border-radius: 10px; border: 1px solid var(--border); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+    
+    <!-- === الإضافة الجديدة: البحث اللفظي الهجين === -->
+    <div style="grid-column: 1 / -1; display: flex; gap: 15px; margin-bottom: 10px; background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+        <div style="flex: 1; display: flex; flex-direction: column;">
+            <label style="font-weight: bold; margin-bottom: 8px; color: var(--primary);">بحث لفظي متزامن (اختياري):</label>
+            <input type="text" id="grammar_search_text" placeholder="اكتب كلمة أو جذراً لتطبيقه مع الشروط النحوية بالأسفل..." style="padding: 10px; font-family: 'Amiri'; font-size: 16px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: 5px; padding-top: 25px;">
+            <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 5px;"><input type="radio" name="grammar_search_type" value="exact"> تطابق تام</label>
+            <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 5px;"><input type="radio" name="grammar_search_type" value="contains" checked> جزئي <span title="يعدّ كل كلمة تحوي الجزء المطابق مرة واحدة، مهما تكرر الجزء داخلها" style="font-size: 12px; color: var(--text-muted, #777); cursor: help;">(تُعدّ الكلمة مرة)</span></label>
+            <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-weight: bold;"><input type="radio" name="grammar_search_type" value="root"> بالجذر 💡</label>
+        </div>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--primary);">التصنيف الصرفي:</label>
+        <select id="morph_tag" style="padding: 10px; font-family: 'Tajawal'; font-size: 15px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">الكل</option>
+            <optgroup label="المشتقات">
+                <option value="NOUN_ACTIVE_PART">اسم فاعل</option><option value="NOUN_PASSIVE_PART">اسم مفعول</option>
+                <option value="ADJ_QUALIT">صفة مشبهة</option><option value="ADJ_INTENS">صيغة مبالغة</option>
+                <option value="ADJ_COMP">اسم تفضيل</option><option value="NOUN_TIME_PLACE">اسم زمان أو مكان</option>
+                <option value="NOUN_INSTRUMENT">اسم آلة</option>
+            </optgroup>
+            <optgroup label="الأفعال">
+                <option value="PV">فعل ماضٍ</option><option value="IV">فعل مضارع</option><option value="CV">فعل أمر</option>
+                <option value="PV_PASS">فعل ماضٍ مبني للمجهول</option><option value="IV_PASS">فعل مضارع مبني للمجهول</option>
+            </optgroup>
+            <optgroup label="الأسماء">
+                <option value="NOUN_CONCRETE">اسم ذات</option><option value="NOUN_ABSTRACT">اسم معنى</option>
+                <option value="NOUN_PROP">اسم علم</option><option value="GERUND">مصدر صريح</option><option value="GERUND_MEEM">مصدر ميمي</option>
+                <option value="NOUN_VAGUE">اسم مبهم</option><option value="NOUN_DIVINE_NAME">اسم من أسماء الله الحسنى</option>
+                <option value="NOUN_DIVINE_ATTR">صفة إلهية متشابهة</option>
+            </optgroup>
+        </select>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--primary);">الموقع النحوي:</label>
+        <select id="syntactic_role" style="padding: 10px; font-family: 'Tajawal'; font-size: 15px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">الكل</option>
+            <optgroup label="المرفوعات">
+                <option value="GROUP_RAFI">— كل المرفوعات —</option>
+                <option value="AGNT">فاعل</option><option value="PASS_SUBJ">نائب فاعل</option>
+                <option value="SUBJ">مبتدأ</option><option value="SUBJ_DELA">مبتدأ مؤخر</option>
+                <option value="PRED">خبر</option>
+                <option value="SUBJ_COP_V">اسم كان وأخواتها</option><option value="PART_COP_PRED">خبر إنّ وأخواتها</option>
+            </optgroup>
+            <optgroup label="المنصوبات">
+                <option value="GROUP_NASB">— كل المنصوبات —</option>
+                <option value="OBJ">مفعول به</option><option value="COGN">مفعول مطلق</option><option value="PURP">مفعول لأجله</option>
+                <option value="CIRCUM">حال</option><option value="ACC_SPECIF">تمييز</option><option value="EXCP">مستثنى</option>
+                <option value="ADV_TIME">ظرف زمان</option><option value="ADV_PLCE">ظرف مكان</option>
+                <option value="VOC">منادى</option><option value="SUBJ_NEG_CAT">اسم لا النافية للجنس</option>
+                <option value="SUBJ_COP_PART">اسم إنّ وأخواتها</option><option value="V_COP_PRED">خبر كان وأخواتها</option>
+            </optgroup>
+            <optgroup label="المجرورات">
+                <option value="GROUP_JARR">— كل المجرورات —</option>
+                <option value="PREP_OBJ">اسم مجرور</option><option value="GEN_CONS">مضاف إليه</option>
+            </optgroup>
+            <optgroup label="التوابع">
+                <option value="GROUP_TAWABI">— كل التوابع —</option>
+                <option value="ADJ">نعت (صفة)</option><option value="CONJ_N">اسم معطوف</option><option value="APPOS">بدل</option>
+                <option value="INTENCIF">توكيد معنوي</option><option value="CONFIRM_LAFDHI">توكيد لفظي</option>
+            </optgroup>
+        </select>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--primary);">الحالة الإعرابية:</label>
+        <select id="case_mood" style="padding: 10px; font-family: 'Tajawal'; font-size: 15px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">الكل</option>
+            <option value="NOMINATIVE">مرفوع</option><option value="ACCUSATIVE">منصوب</option>
+            <option value="GENITIVE">مجرور</option><option value="JUSSIVE">مجزوم</option><option value="INVARIABLE">مبني</option>
+        </select>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--primary);">نطاق البحث:</label>
+        <select id="sura_filter_grammar" style="padding: 10px; font-family: 'Tajawal'; font-size: 15px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">كل القرآن</option>
+            {% for sura in suras %}
+            <option value="{{ sura.id }}">{{ sura.id }}. سورة {{ sura.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+        <!-- حقل استبعاد الألفاظ النحوية -->
+    <div style="grid-column: 1 / -1; margin-top: 10px;">
+        <div style="cursor: pointer; color: #e74c3c; font-weight: bold; font-size: 14px; user-select: none;" onclick="const el = document.getElementById('grammarExcludedContainer'); el.style.display = el.style.display === 'none' ? 'block' : 'none';">🔻 استبعاد ألفاظ معينة من النتائج (اختياري)</div>
+        <div id="grammarExcludedContainer" style="display: none; margin-top: 10px; width: 100%;">
+            <input type="text" id="grammar_excluded_words" placeholder="اكتب الكلمات المراد استبعادها بالتشكيل (مثال: كَانَ يَوَدُّ)..." style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-family: 'Amiri'; font-size: 16px; background: var(--bg); color: var(--text);">
+            <div style="font-size: 12px; color: #777; margin-top: 5px;">* سيتم تجاهل هذه الكلمات تماماً من الاستخراج النحوي والإحصاء.</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= لوحة المقارنة (الكلمة الثانية) ================= -->
+<div id="grammarComparePanel" class="search-panel" style="display: none; background-color: rgba(197, 155, 39, 0.1); padding: 25px; border-radius: 10px; border: 2px dashed var(--accent); margin-top: 15px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: end;">
+    <div style="grid-column: 1 / -1; color: var(--accent); font-weight: bold; font-size: 18px; margin-bottom: -10px;">🔴 معايير المقارنة الثانية:</div>
+    
+    <!-- === الإضافة الجديدة: البحث اللفظي الهجين 2 === -->
+    <div style="grid-column: 1 / -1; display: flex; gap: 15px; margin-bottom: 10px; background: var(--card); padding: 15px; border-radius: 8px; border: 1px dashed var(--accent);">
+        <div style="flex: 1; display: flex; flex-direction: column;">
+            <label style="font-weight: bold; margin-bottom: 8px; color: var(--accent);">بحث لفظي متزامن 2 (اختياري):</label>
+            <input type="text" id="grammar_search_text2" placeholder="اكتب كلمة أو جذراً للمقارنة..." style="padding: 10px; font-family: 'Amiri'; font-size: 16px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); outline: none;">
+        </div>
+        <div style="display: flex; flex-direction: column; justify-content: center; gap: 5px; padding-top: 25px;">
+            <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 5px;"><input type="radio" name="grammar_search_type2" value="exact"> تطابق تام</label>
+            <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 5px;"><input type="radio" name="grammar_search_type2" value="contains" checked> جزئي <span title="يعدّ كل كلمة تحوي الجزء المطابق مرة واحدة، مهما تكرر الجزء داخلها" style="font-size: 12px; color: var(--text-muted, #777); cursor: help;">(تُعدّ الكلمة مرة)</span></label>
+            <label style="font-size: 14px; display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-weight: bold;"><input type="radio" name="grammar_search_type2" value="root"> بالجذر 💡</label>
+        </div>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--accent);">التصنيف الصرفي 2:</label>
+        <select id="morph_tag2" style="padding: 10px; font-family: 'Tajawal'; border: 1px solid var(--accent); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">الكل</option>
+            <optgroup label="المشتقات">
+                <option value="NOUN_ACTIVE_PART">اسم فاعل</option><option value="NOUN_PASSIVE_PART">اسم مفعول</option>
+                <option value="ADJ_QUALIT">صفة مشبهة</option><option value="ADJ_INTENS">صيغة مبالغة</option>
+                <option value="ADJ_COMP">اسم تفضيل</option><option value="NOUN_TIME_PLACE">اسم زمان أو مكان</option>
+            </optgroup>
+            <optgroup label="الأفعال">
+                <option value="PV">فعل ماضٍ</option><option value="IV">فعل مضارع</option><option value="CV">فعل أمر</option>
+            </optgroup>
+            <optgroup label="الأسماء">
+                <option value="NOUN_CONCRETE">اسم ذات</option><option value="NOUN_ABSTRACT">اسم معنى</option><option value="GERUND">مصدر صريح</option>
+                <option value="NOUN_VAGUE">اسم مبهم</option><option value="NOUN_DIVINE_NAME">اسم من أسماء الله الحسنى</option>
+                <option value="NOUN_DIVINE_ATTR">صفة إلهية متشابهة</option>
+            </optgroup>
+        </select>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--accent);">الموقع النحوي 2:</label>
+        <select id="syntactic_role2" style="padding: 10px; font-family: 'Tajawal'; border: 1px solid var(--accent); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">الكل</option>
+            <optgroup label="المرفوعات">
+                <option value="GROUP_RAFI">— كل المرفوعات —</option>
+                <option value="AGNT">فاعل</option><option value="PASS_SUBJ">نائب فاعل</option>
+                <option value="SUBJ">مبتدأ</option><option value="SUBJ_DELA">مبتدأ مؤخر</option><option value="PRED">خبر</option>
+                <option value="SUBJ_COP_V">اسم كان وأخواتها</option><option value="PART_COP_PRED">خبر إنّ وأخواتها</option>
+            </optgroup>
+            <optgroup label="المنصوبات">
+                <option value="GROUP_NASB">— كل المنصوبات —</option>
+                <option value="SUBJ_COP_PART">اسم إنّ وأخواتها</option><option value="V_COP_PRED">خبر كان وأخواتها</option>
+                <option value="OBJ">مفعول به</option><option value="COGN">مفعول مطلق</option><option value="PURP">مفعول لأجله</option>
+                <option value="CIRCUM">حال</option><option value="ACC_SPECIF">تمييز</option><option value="EXCP">مستثنى</option>
+                <option value="VOC">منادى</option><option value="SUBJ_NEG_CAT">اسم لا النافية للجنس</option>
+            </optgroup>
+            <optgroup label="المجرورات">
+                <option value="GROUP_JARR">— كل المجرورات —</option>
+                <option value="PREP_OBJ">اسم مجرور</option><option value="GEN_CONS">مضاف إليه</option>
+            </optgroup>
+            <optgroup label="التوابع">
+                <option value="GROUP_TAWABI">— كل التوابع —</option>
+                <option value="ADJ">نعت (صفة)</option><option value="CONJ_N">اسم معطوف</option><option value="APPOS">بدل</option>
+                <option value="INTENCIF">توكيد معنوي</option><option value="CONFIRM_LAFDHI">توكيد لفظي</option>
+            </optgroup>
+        </select>
+    </div>
+
+    <div class="form-group" style="display: flex; flex-direction: column;">
+        <label style="font-weight: bold; margin-bottom: 8px; color: var(--accent);">الحالة الإعرابية 2:</label>
+        <select id="case_mood2" style="padding: 10px; font-family: 'Tajawal'; border: 1px solid var(--accent); border-radius: 5px; background: var(--card); color: var(--text);">
+            <option value="all">الكل</option>
+            <option value="NOMINATIVE">مرفوع</option><option value="ACCUSATIVE">منصوب</option>
+            <option value="GENITIVE">مجرور</option><option value="JUSSIVE">مجزوم</option><option value="INVARIABLE">مبني</option>
+        </select>
+    </div>
+
+        <!-- حقل استبعاد الألفاظ النحوية للمقارنة (البحث الثاني) -->
+    <div style="grid-column: 1 / -1; margin-top: 10px;">
+        <div style="cursor: pointer; color: #e74c3c; font-weight: bold; font-size: 14px; user-select: none;" onclick="const el = document.getElementById('grammarExcludedContainer2'); el.style.display = el.style.display === 'none' ? 'block' : 'none';">🔻 استبعاد ألفاظ معينة من المقارنة (اختياري)</div>
+        <div id="grammarExcludedContainer2" style="display: none; margin-top: 10px; width: 100%;">
+            <input type="text" id="grammar_excluded_words2" placeholder="اكتب الكلمات المراد استبعادها بالتشكيل (مثال: كَانَ يَوَدُّ)..." style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px dashed var(--accent); border-radius: 6px; font-family: 'Amiri'; font-size: 16px; background: var(--bg); color: var(--text); outline: none;">
+            <div style="font-size: 12px; color: #777; margin-top: 5px;">* سيتم تجاهل هذه الكلمات تماماً من الاستخراج النحوي الخاص بالمقارنة الثانية.</div>
+        </div>
+    </div>
+
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <button onclick="performGrammarSearch()" style="background-color: var(--primary); color: white; border: none; padding: 12px 50px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">ابحث الآن</button>
+</div>
+
+<!-- ================= شريط الإحصائيات والمحفظة ================= -->
+<div class="stats-bar" style="margin-top: 25px;">
+    <div id="grammarCountDisplay" style="font-size: 18px; font-weight: bold;">النتائج ستظهر هنا</div>
+    <div class="actions-group">
+        <button id="btnGrammarCopy" class="btn-icon btn-copy" onclick="copyGrammarResults()" disabled>نسخ النتائج 📋</button>
+        <button id="btnGrammarWord" class="btn-icon btn-word" onclick="downloadGrammarWord()" disabled>تحميل Word 💾</button>
+
+        <div style="position: relative; display: inline-block;">
+            <button class="btn-icon" style="background: #8e44ad;" onclick="toggleGrammarWorkspaceMenu(event)">المحفظة النحوية 💼 ⏷</button>
+            <div id="grammarWorkspaceMenu" class="dropdown-menu">
+                <button onclick="saveGrammarWorkspace(); toggleGrammarWorkspaceMenu();">حفظ العمل 📌</button>
+                <button onclick="restoreGrammarWorkspace(); toggleGrammarWorkspaceMenu();">استرجاع العمل 📂</button>
+                <button onclick="deleteGrammarWorkspace(); toggleGrammarWorkspaceMenu();" style="color: #e74c3c;">حذف عمل 🗑️</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="grammar-loader" style="display: none; text-align: center; margin: 30px 0; color: var(--primary); font-weight: bold; font-size: 18px;">جاري التحليل واستخراج البيانات... ⏳</div>
+
+
+<div class="results-box" id="grammarResultsBox" style="display: none;">
+    <div id="grammar-results-container"></div>
+</div>
+
+<!-- ================= التحليل البياني النحوي ================= -->
+<div class="analytics-container" id="grammarAnalyticsBox" style="display: none;">
+    <div class="chart-header">
+        <h3>التحليل البياني للانتشار النحوي</h3>
+        <div class="chart-tools">
+            <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
+                <label><input type="radio" name="grammar_chart_sort" value="mushaf" onchange="updateGrammarAnalytics()" checked> حسب المصحف</label>
+                <label><input type="radio" name="grammar_chart_sort" value="revelation" onchange="updateGrammarAnalytics()"> حسب النزول</label>
+            </div>
+            <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
+                <label><input type="radio" name="grammar_chart_type" value="bar" onchange="updateGrammarAnalytics()" checked> أعمدة</label>
+                <label><input type="radio" name="grammar_chart_type" value="line" onchange="updateGrammarAnalytics()"> خطي</label>
+            </div>
+            <div class="chart-col">
+                <button class="btn-tool" onclick="downloadGrammarChartPNG()">تصدير كصورة 🖼️</button>
+                <button class="btn-tool" style="background:#27ae60" onclick="downloadGrammarTableCSV()">تحميل Excel 📊</button>
+            </div>
+        </div>
+    </div>
+    
+    <div style="position: relative; height: 350px; width: 100%; margin-bottom: 20px;">
+        <canvas id="grammarChart" style="background: var(--card); border-radius: 8px; padding: 10px;"></canvas>
+    </div>
+
+    <table class="stats-table" id="grammarStatsTable">
+        <thead><tr><th>القطاع / القسم</th><th>عدد المواضع</th><th style="width: 40%">النسبة المئوية</th></tr></thead>
+        <tbody id="grammarStatsTableBody"></tbody>
+    </table>
+</div>
+
+<!-- ================= أكواد الجافاسكريبت ================= -->
+<script>
+    var morphDict = {
+        'NOUN_ACTIVE_PART': 'اسم فاعل', 'NOUN_PASSIVE_PART': 'اسم مفعول', 'ADJ_QUALIT': 'صفة مشبهة',
+        'ADJ_INTENS': 'صيغة مبالغة', 'ADJ_COMP': 'اسم تفضيل', 'NOUN_TIME_PLACE': 'اسم زمان/مكان',
+        'NOUN_INSTRUMENT': 'اسم آلة', 'PV': 'فعل ماض', 'IV': 'فعل مضارع', 'CV': 'فعل أمر',
+        'NOUN_CONCRETE': 'اسم ذات', 'NOUN_ABSTRACT': 'اسم معنى', 'NOUN_PROP': 'اسم علم',
+        'GERUND': 'مصدر صريح', 'GERUND_MEEM': 'مصدر ميمي', 'PV_PASS': 'ماض مبني للمجهول', 'IV_PASS': 'مضارع مبني للمجهول',
+        'NOUN_VAGUE': 'اسم مبهم', 'NOUN_DIVINE_NAME': 'اسم من أسماء الله الحسنى', 'NOUN_DIVINE_ATTR': 'صفة إلهية متشابهة'
+    };
+
+    var syntaxDict = {
+        'AGNT': 'فاعل', 'PASS_SUBJ': 'نائب فاعل', 'SUBJ': 'مبتدأ', 'SUBJ_DELA': 'مبتدأ مؤخر', 'PRED': 'خبر', 'OBJ': 'مفعول به',
+        'COGN': 'مفعول مطلق', 'PURP': 'مفعول لأجله', 'CIRCUM': 'حال', 'ACC_SPECIF': 'تمييز',
+        'EXCP': 'مستثنى', 'ADV_TIME': 'ظرف زمان', 'ADV_PLCE': 'ظرف مكان', 'PREP_OBJ': 'اسم مجرور',
+        'GEN_CONS': 'مضاف إليه', 'ADJ': 'نعت', 'CONJ_N': 'اسم معطوف', 'APPOS': 'بدل',
+        'INTENCIF': 'توكيد معنوي', 'CONFIRM_LAFDHI': 'توكيد لفظي', 'VOC': 'منادى', 'SUBJ_NEG_CAT': 'اسم لا النافية للجنس',
+        'SUBJ_COP_V': 'اسم كان وأخواتها', 'V_COP_PRED': 'خبر كان وأخواتها',
+        'SUBJ_COP_PART': 'اسم إنّ وأخواتها', 'PART_COP_PRED': 'خبر إنّ وأخواتها'
+    };
+
+    var caseDict = {
+        'NOMINATIVE': 'مرفوع', 'ACCUSATIVE': 'منصوب', 'GENITIVE': 'مجرور', 'JUSSIVE': 'مجزوم', 'INVARIABLE': 'مبني'
+    };
+
+    var globalGrammarResults = [];
+    var grammarChartObj = null;
+    var grammarChartDataStore = null;
+    var grammarChartDataStore2 = null;
+    var isGrammarCompare = false;
+    var q1Title = '';
+    var q2Title = '';
+
+    function toggleGrammarCompare() {
+        isGrammarCompare = !isGrammarCompare;
+        const panel = document.getElementById('grammarComparePanel');
+        panel.style.display = isGrammarCompare ? 'grid' : 'none';
+        
+        const btn = document.getElementById('btnGrammarCompare');
+        btn.innerText = isGrammarCompare ? '- إلغاء المقارنة' : '+ إضافة مقارنة نحوية';
+        btn.style.background = isGrammarCompare ? '#d32f2f' : 'var(--accent)';
+    }
+
+    // تم تحديث الدالة لتشمل الكلمة المبحوث عنها في عنوان الرسم البياني
+    function generateTitle(m, s, c, txt) {
+        let title = [];
+        if(txt) title.push(`"${txt}"`);
+        if(m !== 'all') title.push(morphDict[m] || m);
+        if(s !== 'all') title.push(syntaxDict[s] || s);
+        if(c !== 'all') title.push(caseDict[c] || c);
+        return title.length > 0 ? title.join(' + ') : 'بحث عام';
+    }
+
+    function renderGrammarResults() {
+        const container = document.getElementById('grammar-results-container');
+        let html = '';
+
+        globalGrammarResults.forEach((item, index) => {
+            let morphAr = morphDict[item.morph_tag] || item.morph_tag;
+            let syntaxAr = syntaxDict[item.syntactic_role] || item.syntactic_role;
+            let caseAr = caseDict[item.case_mood] || item.case_mood;
+            
+            let groupLabel = item.compare_group ? `<span style="background-color: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 4px 10px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-right: 5px;">${item.compare_group}</span>` : '';
+
+            html += `
+                <div class="aya-card" style="font-size: 22px;">
+                    <strong>${index + 1}.</strong><span> ﴿ ${item.text_tashkeel} ﴾ </span>
+                    <div style="margin-top: 15px; font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                        <span style="color: var(--accent); font-weight: bold; font-size: 16px;">[${item.sura_name}:${item.verse_no}]</span>
+                        ${groupLabel}
+                        <span style="background-color: var(--highlight-bg); border: 2px solid var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 15px; font-weight: bold; color: var(--highlight-text);">الكلمة: ${item.word_text}</span>
+                        ${item.morph_tag && item.morph_tag !== 'null' ? `<span class="tag" style="font-size:14px;">الصرف: ${morphAr}</span>` : ''}
+                        ${item.syntactic_role && item.syntactic_role !== 'null' ? `<span class="tag" style="font-size:14px;">النحو: ${syntaxAr}</span>` : ''}
+                        ${item.case_mood && item.case_mood !== 'null' ? `<span class="tag" style="font-size:14px;">الحالة: ${caseAr}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function updateGrammarAnalytics(animate = true) {
+        if(!grammarChartDataStore || !grammarChartDataStore.mushaf) return;
+        const chartType = document.querySelector('input[name="grammar_chart_type"]:checked').value;
+        const chartSort = document.querySelector('input[name="grammar_chart_sort"]:checked').value;
+        const selectedData = grammarChartDataStore[chartSort];
+        const ctx = document.getElementById('grammarChart').getContext('2d');
+        const isDark = document.body.classList.contains('dark-mode');
+        
+        if (grammarChartObj) grammarChartObj.destroy();
+        
+        let datasets = [];
+        let primaryColor = isDark ? 'rgba(76, 175, 80, 0.8)' : 'rgba(27, 94, 32, 0.8)';
+        
+        datasets.push({
+            label: isGrammarCompare ? q1Title : 'انتشار المواضع النحوية',
+            data: selectedData.counts,
+            backgroundColor: chartType === 'bar' ? primaryColor : (isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(27, 94, 32, 0.15)'),
+            borderColor: chartType === 'line' ? primaryColor : undefined,
+            borderWidth: chartType === 'line' ? 2.5 : 0, fill: chartType === 'line', tension: 0.35,
+            pointBackgroundColor: chartType === 'line' ? primaryColor : undefined, borderRadius: chartType === 'bar' ? 4 : 0
+        });
+
+        if (isGrammarCompare && grammarChartDataStore2) {
+            const selectedData2 = grammarChartDataStore2[chartSort];
+            let compareColor = isDark ? 'rgba(231, 76, 60, 0.8)' : 'rgba(192, 57, 43, 0.8)';
+            datasets.push({
+                label: q2Title,
+                data: selectedData2.counts,
+                backgroundColor: chartType === 'bar' ? compareColor : (isDark ? 'rgba(231, 76, 60, 0.2)' : 'rgba(192, 57, 43, 0.15)'),
+                borderColor: chartType === 'line' ? compareColor : undefined,
+                borderWidth: chartType === 'line' ? 2.5 : 0, fill: chartType === 'line', tension: 0.35,
+                pointBackgroundColor: chartType === 'line' ? compareColor : undefined, borderRadius: chartType === 'bar' ? 4 : 0
+            });
+        }
+
+        grammarChartObj = new Chart(ctx, {
+            type: chartType, data: { labels: selectedData.labels, datasets: datasets },
+            options: { 
+                animation: animate ? undefined : false,
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { right: 35, left: 20 } },
+                scales: { 
+                    x: { reverse: true, grid: { color: isDark ? '#333' : '#eee' }, ticks: { font: { family: 'Tajawal' } } }, 
+                    y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Tajawal' } }, grid: { color: isDark ? '#333' : '#eee' } } 
+                }, plugins: { legend: { display: true, labels: { font: { family: 'Tajawal', size: 14 }, color: isDark ? '#e0e0e0' : '#333' } } } 
+            }
+        });
+
+        let tbody = document.getElementById('grammarStatsTableBody');
+        tbody.innerHTML = '';
+        if (isGrammarCompare && grammarChartDataStore2) {
+            const selectedData2 = grammarChartDataStore2[chartSort];
+            document.querySelector('#grammarStatsTable thead tr').innerHTML = `<th>القطاع / القسم</th><th style="color: white;">${q1Title}</th><th style="background-color: #c0392b; color: white; border-color: #c0392b;">${q2Title}</th>`;
+            selectedData.labels.forEach((label, i) => {
+                if(selectedData.counts[i] > 0 || selectedData2.counts[i] > 0) { 
+                    tbody.innerHTML += `<tr><td><strong>${label}</strong></td><td style="color: var(--primary); font-weight: bold;">${selectedData.counts[i]}</td><td style="color: #c0392b; font-weight: bold;">${selectedData2.counts[i]}</td></tr>`;
+                }
+            });
+        } else {
+            let total = selectedData.counts.reduce((a, b) => a + b, 0);
+            document.querySelector('#grammarStatsTable thead tr').innerHTML = `<th>القطاع / القسم</th><th>عدد المواضع</th><th style="width: 40%">النسبة المئوية</th>`;
+            selectedData.labels.forEach((label, i) => {
+                let count = selectedData.counts[i];
+                if(count > 0) { 
+                    let percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                    tbody.innerHTML += `<tr><td><strong>${label}</strong></td><td>${count}</td><td><div style="display:flex; align-items:center; gap:10px; justify-content:center;"><span style="width:40px; font-weight:bold;">${percent}%</span><div class="progress-bar-bg" style="width:60%;"><div class="progress-bar-fill" style="width:${percent}%;"></div></div></div></td></tr>`;
+                }
+            });
+        }
+    }
+
+    function copyGrammarResults() {
+        if (!globalGrammarResults.length) return;
+        let textToCopy = `نتائج البحث النحوي: ${q1Title} ${isGrammarCompare ? 'مقارنة مع ' + q2Title : ''}\nإجمالي المواضع: ${globalGrammarResults.length}\n\n`;
+        globalGrammarResults.forEach((item, index) => { 
+            let group = item.compare_group ? `[${item.compare_group}] ` : '';
+            textToCopy += `${index + 1}. ﴿ ${item.text_tashkeel} ﴾ [${item.sura_name}:${item.verse_no}] - ${group}الكلمة: (${item.word_text})\n`; 
+        });
+        const textarea = document.createElement("textarea"); textarea.value = textToCopy; document.body.appendChild(textarea);
+        textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+        const btn = document.getElementById('btnGrammarCopy'); btn.innerText = "تم النسخ ✔"; btn.style.backgroundColor = "#27ae60"; 
+        setTimeout(() => { btn.innerText = "نسخ النتائج 📋"; btn.style.backgroundColor = "#e67e22"; }, 2000);
+    }
+
+    async function downloadGrammarWord() {
+        if (!globalGrammarResults.length) return;
+        const btnWord = document.getElementById('btnGrammarWord');
+        const originalText = btnWord.innerHTML;
+        btnWord.innerHTML = 'جاري التصدير ⏳...'; btnWord.disabled = true;
+
+        const mappedResults = globalGrammarResults.map(r => ({
+            id: `${r.sura_no}_${r.verse_no}`, sura_name: r.sura_name, aya_num: r.verse_no, clean: r.text_tashkeel
+        }));
+
+        const originalSort = document.querySelector('input[name="grammar_chart_sort"]:checked').value;
+        document.querySelector('input[name="grammar_chart_sort"][value="mushaf"]').checked = true; updateGrammarAnalytics(false); 
+        const chartImageMushaf = document.getElementById('grammarChart').toDataURL('image/png'); 
+        document.querySelector('input[name="grammar_chart_sort"][value="revelation"]').checked = true; updateGrammarAnalytics(false);
+        const chartImageRev = document.getElementById('grammarChart').toDataURL('image/png'); 
+        document.querySelector(`input[name="grammar_chart_sort"][value="${originalSort}"]`).checked = true; updateGrammarAnalytics(true);
+
+        const payload = {
+            query: `بحث هجين: ${q1Title}`, 
+            query2: isGrammarCompare ? `بحث هجين: ${q2Title}` : null, 
+            results: mappedResults, 
+            display_type: 'clean', 
+            stats_data: grammarChartDataStore, stats_data2: isGrammarCompare ? grammarChartDataStore2 : null,
+            chart_image_mushaf: chartImageMushaf, chart_image_rev: chartImageRev
+        };
+
+        try {
+            const response = await fetch('/export/word', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            const blob = await response.blob();
+            const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); 
+            a.download = isGrammarCompare ? `مقارنة_هجينة.docx` : `التقرير_النحوي_الهجين.docx`; 
+            document.body.appendChild(a); a.click(); a.remove();
+        } catch(e) { alert('حدث خطأ أثناء إعداد التقرير.'); }
+
+        btnWord.innerHTML = originalText; btnWord.disabled = false;
+    }
+
+    function downloadGrammarChartPNG() {
+        const canvas = document.getElementById('grammarChart');
+        const tempCanvas = document.createElement('canvas'); tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
+        const ctx = tempCanvas.getContext('2d'); ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#1e1e1e' : '#ffffff';
+        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height); ctx.drawImage(canvas, 0, 0);
+        const link = document.createElement('a'); link.download = `الرسم_البياني_النحوي.png`; link.href = tempCanvas.toDataURL('image/png'); link.click();
+    }
+
+    function downloadGrammarTableCSV() {
+        if(!grammarChartDataStore || !grammarChartDataStore.mushaf) return;
+        const chartSort = document.querySelector('input[name="grammar_chart_sort"]:checked').value;
+        const selectedData = grammarChartDataStore[chartSort];
+        let csvContent = '\uFEFF'; 
+        if (isGrammarCompare && grammarChartDataStore2) {
+            const selectedData2 = grammarChartDataStore2[chartSort];
+            csvContent += `القسم,"${q1Title}","${q2Title}"\n`;
+            selectedData.labels.forEach((label, i) => { if(selectedData.counts[i] > 0 || selectedData2.counts[i] > 0) csvContent += `"${label}",${selectedData.counts[i]},${selectedData2.counts[i]}\n`; });
+        } else {
+            let total = selectedData.counts.reduce((a, b) => a + b, 0);
+            csvContent += "القسم,عدد المواضع,النسبة المئوية\n";
+            selectedData.labels.forEach((label, i) => { if(selectedData.counts[i] > 0) csvContent += `"${label}",${selectedData.counts[i]},"${total > 0 ? ((selectedData.counts[i] / total) * 100).toFixed(1) + "%" : "0%"}"\n`; });
+        }
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = isGrammarCompare ? `مقارنة_هجينة.csv` : `إحصائيات_نحوية.csv`; link.click();
+    }
+
+    function toggleGrammarWorkspaceMenu(e) {
+        if(e) e.stopPropagation(); document.getElementById('grammarWorkspaceMenu').classList.toggle('show');
+    }
+    
+    window.addEventListener('click', function() {
+        const menu = document.getElementById('grammarWorkspaceMenu');
+        if (menu && menu.classList.contains('show')) menu.classList.remove('show');
+    });
+
+    async function performGrammarSearch() {
+        const txt1 = document.getElementById('grammar_search_text').value.trim();
+        const type1 = document.querySelector('input[name="grammar_search_type"]:checked').value;
+        const m1 = document.getElementById('morph_tag').value;
+        const s1 = document.getElementById('syntactic_role').value;
+        const c1 = document.getElementById('case_mood').value;
+        const suraF = document.getElementById('sura_filter_grammar').value;
+        const exWords1 = document.getElementById('grammar_excluded_words').value.trim();
+
+        if (!txt1 && m1 === 'all' && s1 === 'all' && c1 === 'all') {
+            alert("الرجاء إدخال كلمة أو اختيار معيار نحوي واحد على الأقل للبحث الأول.");
+            return;
+        }
+
+        q1Title = generateTitle(m1, s1, c1, txt1);
+        
+        let payload1 = { search_text: txt1, search_type: type1, morph_tag: m1, syntactic_role: s1, case_mood: c1, sura_filter: suraF, excluded_words: exWords1 };
+        let payload2 = null;
+
+        if (isGrammarCompare) {
+            const txt2 = document.getElementById('grammar_search_text2').value.trim();
+            const type2 = document.querySelector('input[name="grammar_search_type2"]:checked').value;
+            const m2 = document.getElementById('morph_tag2').value;
+            const s2 = document.getElementById('syntactic_role2').value;
+            const c2 = document.getElementById('case_mood2').value;
+            const exWords2 = document.getElementById('grammar_excluded_words2').value.trim(); // قراءة الحقل الجديد
+            
+            if (!txt2 && m2 === 'all' && s2 === 'all' && c2 === 'all') {
+                alert("الرجاء إدخال كلمة أو اختيار معيار للمقارنة الثانية.");
+                return;
+            }
+            q2Title = generateTitle(m2, s2, c2, txt2);
+            payload2 = { search_text: txt2, search_type: type2, morph_tag: m2, syntactic_role: s2, case_mood: c2, sura_filter: suraF, excluded_words: exWords2 };
+        }
+
+        document.getElementById('grammar-loader').style.display = 'block';
+        document.getElementById('grammarResultsBox').style.display = 'none';
+        document.getElementById('grammarAnalyticsBox').style.display = 'none';
+        document.getElementById('btnGrammarCopy').disabled = true;
+        document.getElementById('btnGrammarWord').disabled = true;
+
+        try {
+            const req1 = fetch('/api/grammar_search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload1) });
+            let req2 = null;
+            if (isGrammarCompare) {
+                req2 = fetch('/api/grammar_search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload2) });
+            }
+
+            const [res1, res2] = await Promise.all([req1, req2 ? req2 : Promise.resolve(null)]);
+            const data1 = await res1.json();
+            const data2 = res2 ? await res2.json() : null;
+
+            grammarChartDataStore = data1.chart;
+            grammarChartDataStore2 = data2 ? data2.chart : null;
+
+            if (data2) {
+                data1.results.forEach(r => r.compare_group = q1Title);
+                data2.results.forEach(r => r.compare_group = q2Title);
+                globalGrammarResults = [...data1.results, ...data2.results];
+                globalGrammarResults.sort((a, b) => (a.sura_no === b.sura_no) ? a.verse_no - b.verse_no : a.sura_no - b.sura_no);
+                document.getElementById('grammarCountDisplay').innerHTML = `مقارنة: <span style="color:var(--primary)">${q1Title}</span> (${data1.count}) | <span style="color:#e74c3c">${q2Title}</span> (${data2.count})`;
+            } else {
+                globalGrammarResults = data1.results;
+                if(data1.count > 0) document.getElementById('grammarCountDisplay').innerHTML = `نتائج (${q1Title}): <span style="color:var(--accent)">${data1.count}</span> موضع`;
+                else document.getElementById('grammarCountDisplay').innerHTML = `لا توجد نتائج مطابقة لبحثك.`;
+            }
+
+            if (globalGrammarResults.length > 0) {
+                document.getElementById('btnGrammarCopy').disabled = false;
+                document.getElementById('btnGrammarWord').disabled = false;
+                document.getElementById('grammarResultsBox').style.display = 'block';
+                document.getElementById('grammarAnalyticsBox').style.display = 'block';
+                renderGrammarResults();
+                updateGrammarAnalytics();
+            } else {
+                document.getElementById('grammar-results-container').innerHTML = '<div style="text-align: center; color: red; padding: 20px;">لا توجد نتائج.</div>';
+                document.getElementById('grammarResultsBox').style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error("Error:", error);
+            document.getElementById('grammar-results-container').innerHTML = '<div style="color:red; text-align:center;">حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.</div>';
+            document.getElementById('grammarResultsBox').style.display = 'block';
+        } finally {
+            document.getElementById('grammar-loader').style.display = 'none';
+        }
+    }
+
+    function saveGrammarWorkspace() {
+        const txt1 = document.getElementById('grammar_search_text').value.trim();
+        const m1 = document.getElementById('morph_tag').value;
+        const s1 = document.getElementById('syntactic_role').value;
+        const c1 = document.getElementById('case_mood').value;
+
+        if (!txt1 && m1 === 'all' && s1 === 'all' && c1 === 'all') {
+            alert('يرجى إدخال كلمة أو تحديد معيار نحوي واحد على الأقل قبل الحفظ!');
+            return;
+        }
+
+        const wsName = prompt('أدخل اسماً مميزاً لحفظ هذا البحث (مثلاً: جذور في محل مفعول):');
+        if (!wsName) return; 
+
+        // إضافة حقل الاستبعاد الثاني في المحفظة
+        const workspaceData = {
+            isGrammarCompare: isGrammarCompare,
+            txt1: txt1,
+            type1: document.querySelector('input[name="grammar_search_type"]:checked').value,
+            m1: m1, s1: s1, c1: c1,
+            suraF: document.getElementById('sura_filter_grammar').value,
+            exWords: document.getElementById('grammar_excluded_words').value,
+            
+            txt2: document.getElementById('grammar_search_text2').value,
+            type2: document.querySelector('input[name="grammar_search_type2"]:checked').value,
+            m2: document.getElementById('morph_tag2').value, 
+            s2: document.getElementById('syntactic_role2').value, 
+            c2: document.getElementById('case_mood2').value,
+            exWords2: document.getElementById('grammar_excluded_words2') ? document.getElementById('grammar_excluded_words2').value : ''
+        };
+        localStorage.setItem('quranGrammarWorkspace_' + wsName, JSON.stringify(workspaceData));
+        alert(`تم الحفظ باسم "${wsName}" بنجاح! 📌`);
+    }
+
+    function restoreGrammarWorkspace() {
+        const savedKeys = Object.keys(localStorage).filter(k => k.startsWith('quranGrammarWorkspace_')).map(k => k.replace('quranGrammarWorkspace_', ''));
+        if (savedKeys.length === 0) { alert('لا توجد محافظ محفوظة سابقاً 📂'); return; }
+        
+        let msg = "المحافظ المحفوظة:\n\n";
+        savedKeys.forEach((k, index) => { msg += `${index + 1}. ${k}\n`; });
+        const choice = prompt(msg + "\nاكتب رقم المحفظة للاسترجاع:");
+        if (!choice) return; 
+        
+        const index = parseInt(choice) - 1;
+        if (isNaN(index) || index < 0 || index >= savedKeys.length) { alert('رقم غير صحيح!'); return; }
+
+        const data = JSON.parse(localStorage.getItem('quranGrammarWorkspace_' + savedKeys[index]));
+        
+        // استعادة البحث الأول
+        document.getElementById('grammar_search_text').value = data.txt1 || '';
+        document.querySelector(`input[name="grammar_search_type"][value="${data.type1 || 'contains'}"]`).checked = true;
+        document.getElementById('morph_tag').value = data.m1 || 'all'; 
+        document.getElementById('syntactic_role').value = data.s1 || 'all'; 
+        document.getElementById('case_mood').value = data.c1 || 'all';
+        document.getElementById('sura_filter_grammar').value = data.suraF || 'all';
+        
+        const exInput = document.getElementById('grammar_excluded_words');
+        exInput.value = data.exWords || '';
+        const exContainer = document.getElementById('grammarExcludedContainer');
+        if (data.exWords && data.exWords.trim() !== '') { exContainer.style.display = 'block'; } else { exContainer.style.display = 'none'; }
+        
+        // استعادة المقارنة
+        if (data.isGrammarCompare) {
+            if(!isGrammarCompare) toggleGrammarCompare();
+            document.getElementById('grammar_search_text2').value = data.txt2 || '';
+            document.querySelector(`input[name="grammar_search_type2"][value="${data.type2 || 'contains'}"]`).checked = true;
+            document.getElementById('morph_tag2').value = data.m2 || 'all'; 
+            document.getElementById('syntactic_role2').value = data.s2 || 'all'; 
+            document.getElementById('case_mood2').value = data.c2 || 'all';
+            
+            // استعادة استبعاد المقارنة (الجديد)
+            const exInput2 = document.getElementById('grammar_excluded_words2');
+            if(exInput2) {
+                exInput2.value = data.exWords2 || '';
+                const exContainer2 = document.getElementById('grammarExcludedContainer2');
+                if (data.exWords2 && data.exWords2.trim() !== '') { exContainer2.style.display = 'block'; } else { exContainer2.style.display = 'none'; }
+            }
+        } else {
+            if(isGrammarCompare) toggleGrammarCompare();
+        }
+        
+        performGrammarSearch();
+    }
+
+    function deleteGrammarWorkspace() {
+        const savedKeys = Object.keys(localStorage).filter(k => k.startsWith('quranGrammarWorkspace_')).map(k => k.replace('quranGrammarWorkspace_', ''));
+        if (savedKeys.length === 0) { alert('لا توجد محافظ للحذف 📂'); return; }
+        let msg = "المحافظ المحفوظة:\n\n";
+        savedKeys.forEach((k, index) => { msg += `${index + 1}. ${k}\n`; });
+        const choice = prompt(msg + "\nاكتب رقم المحفظة للحذف النهائي:");
+        if (!choice) return; 
+        const index = parseInt(choice) - 1;
+        if (isNaN(index) || index < 0 || index >= savedKeys.length) { alert('رقم غير صحيح!'); return; }
+        if (confirm(`هل أنت متأكد من حذف: "${savedKeys[index]}"؟`)) {
+            localStorage.removeItem('quranGrammarWorkspace_' + savedKeys[index]);
+            alert(`تم الحذف بنجاح! 🗑️`);
+        }
+    }
+</script>
+
+
+
+
+
+
+
+
+

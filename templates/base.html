@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الباحث في القرآن الكريم</title>
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>
+    <style>
+        @font-face { font-family: 'Amiri'; src: url("{{ url_for('static', filename='amiri-regular.ttf') }}") format('truetype'); font-weight: normal; }
+        @font-face { font-family: 'Amiri'; src: url("{{ url_for('static', filename='amiri-bold.ttf') }}") format('truetype'); font-weight: bold; }
+        @font-face { font-family: 'Tajawal'; src: url("{{ url_for('static', filename='tajawal-regular.ttf') }}") format('truetype'); font-weight: normal; }
+        @font-face { font-family: 'Tajawal'; src: url("{{ url_for('static', filename='tajawal-bold.ttf') }}") format('truetype'); font-weight: bold; }
+        
+        :root { 
+            --primary: #1b5e20; --primary-hover: #144d18; --accent: #c59b27;
+            --bg: #f4f7f6; --card: #ffffff; --text: #333; --border: #eee;
+            --stats-bg: #e8f5e9; --highlight-bg: #fff59d; --highlight-text: #b71c1c;
+        }
+        body.dark-mode {
+            --primary: #4caf50; --primary-hover: #388e3c; --accent: #ffd54f;
+            --bg: #121212; --card: #1e1e1e; --text: #e0e0e0; --border: #333;
+            --stats-bg: #2e3b32; --highlight-bg: #fbc02d; --highlight-text: #000;
+        }
+
+        body { font-family: 'Tajawal', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); transition: background 0.3s, color 0.3s; }
+        .container { max-width: 1100px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; }
+        
+        .header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-top: 40px;}
+        .header h1 { font-family: 'Amiri', serif; color: var(--primary); font-size: 38px; margin: 0 0 10px 0; }
+        
+        .top-buttons-left { position: absolute; top: 20px; left: 20px; display: flex; gap: 10px; }
+        .top-buttons-right { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; }
+        .btn-close-app { background: #d32f2f; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-top { background: none; border: 2px solid var(--primary); color: var(--primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-top:hover { background: var(--primary); color: white; }
+
+        /* تنسيقات التبويبات المحدثة */
+        .tabs-nav { display: flex; background-color: var(--card); border-radius: 12px; margin-bottom: 25px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden; position: sticky; top: 0; z-index: 1001; }
+        .tab-item { flex: 1; text-align: center; padding: 15px 20px; background: none; border: none; color: var(--text); font-size: 18px; font-weight: bold; font-family: 'Tajawal', sans-serif; border-bottom: 4px solid transparent; cursor: pointer; transition: all 0.3s ease; }
+        .tab-item:hover { background-color: rgba(27, 94, 32, 0.05); }
+        .tab-item.active { color: var(--primary); background-color: rgba(27, 94, 32, 0.1); border-bottom: 4px solid var(--primary); }
+        body.dark-mode .tab-item.active { color: var(--accent); background-color: rgba(255, 213, 79, 0.1); border-bottom: 4px solid var(--accent); }
+
+        /* النوافذ المنبثقة (Modals) */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card); padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; text-align: center; border: 2px solid var(--primary); position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; font-weight: bold; color: #d32f2f; transition: 0.3s; }
+        .modal-close:hover { color: #b71c1c; transform: scale(1.1); }
+        .modal-title { color: var(--primary); font-family: 'Amiri', serif; font-size: 32px; margin-bottom: 15px; }
+        .modal-text { font-size: 16px; line-height: 1.8; color: var(--text); }
+        .modal-divider { width: 50%; height: 2px; background: var(--accent); margin: 20px auto; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; justify-content: center; align-items: center; z-index: 3000; font-size: 24px; }
+
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-bar input { flex: 1; padding: 15px; font-size: 18px; font-family: 'Amiri', serif; border: 2px solid var(--border); border-radius: 8px; outline: none; background: var(--bg); color: var(--text); }
+        .search-bar button { background: var(--primary); color: white; border: none; padding: 0 35px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .search-bar button:hover { background: var(--primary-hover); }
+
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .panel { background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+        .panel-title { color: var(--primary); font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
+        .control-row { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; align-items: center;}
+        .control-row label { cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 15px; }
+        .control-row select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-family: 'Tajawal'; }
+
+        .stats-bar { display: flex; justify-content: space-between; align-items: center; background: var(--stats-bg); padding: 15px 20px; border-radius: 8px; border-right: 4px solid var(--primary); margin-bottom: 20px; }
+        .actions-group { display: flex; gap: 10px; }
+        .btn-icon { color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-family: 'Tajawal'; font-weight: bold; transition: 0.3s;}
+        .btn-word { background: #0d47a1; } .btn-copy { background: #e67e22; }
+        .btn-icon:disabled { background: #555; cursor: not-allowed; }
+
+        .results-box { max-height: 450px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 30px; background: var(--card); }
+        .aya-card { padding: 15px 0; border-bottom: 1px dashed var(--border); font-family: 'Amiri', serif; font-size: 24px; line-height: 2.2; }
+        .aya-card:last-child { border-bottom: none; }
+        /* ألوان التمييز المتعددة للكلمات */
+        .highlight-0 { background-color: #fff176; color: #b71c1c; font-weight: bold; padding: 0 4px; border-radius: 4px; border-bottom: 2px solid #fbc02d; }
+        .highlight-1 { background-color: #ffcdd2; color: #b71c1c; font-weight: bold; padding: 0 4px; border-radius: 4px; border-bottom: 2px solid #e53935; }
+        .highlight-2 { background-color: #bbdefb; color: #0d47a1; font-weight: bold; padding: 0 4px; border-radius: 4px; border-bottom: 2px solid #1e88e5; }
+        .highlight-3 { background-color: #c8e6c9; color: #1b5e20; font-weight: bold; padding: 0 4px; border-radius: 4px; border-bottom: 2px solid #43a047; }
+        .highlight-4 { background-color: #e1bee7; color: #4a148c; font-weight: bold; padding: 0 4px; border-radius: 4px; border-bottom: 2px solid #8e24aa; }
+
+        /* ألوان التمييز في الوضع الليلي */
+        body.dark-mode .highlight-0 { background-color: #fbc02d; color: #000; border-bottom-color: #f57f17; }
+        body.dark-mode .highlight-1 { background-color: #e57373; color: #000; border-bottom-color: #c62828; }
+        body.dark-mode .highlight-2 { background-color: #64b5f6; color: #000; border-bottom-color: #1565c0; }
+        body.dark-mode .highlight-3 { background-color: #81c784; color: #000; border-bottom-color: #2e7d32; }
+        body.dark-mode .highlight-4 { background-color: #ba68c8; color: #000; border-bottom-color: #6a1b9a; }
+
+        .aya-ref { color: var(--accent); font-weight: bold; font-size: 16px; font-family: 'Tajawal', sans-serif; margin-right: 10px; }
+        .aya-matches { font-size: 20px; line-height: 2.2; margin-top: 4px; }
+        .aya-matches-label { font-family: 'Tajawal', sans-serif; font-size: 15px; font-weight: bold; color: var(--accent); margin-left: 6px; }
+        .btn-load-more { display: none; width: 100%; background: var(--primary); color: white; padding: 12px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+
+        .aya-card.excluded { opacity: 0.35; background: var(--stats-bg); padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .btn-exclude { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'Tajawal'; font-weight: bold; margin-right: 15px; font-size: 13px; transition: 0.3s; }
+        .aya-card.excluded .btn-exclude { background: #27ae60; text-decoration: none; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .pulse-btn { animation: pulse 1.5s infinite; background: #9b59b6 !important; border: 2px solid #fff; }
+
+        /* تنسيقات مربع الملاحظات البحثية */
+        .aya-note { width: 100%; box-sizing: border-box; margin-top: 12px; padding: 10px; border: 1px dashed var(--border); border-radius: 6px; font-family: 'Tajawal'; font-size: 15px; background: var(--bg); color: var(--text); resize: vertical; min-height: 60px; outline: none; transition: 0.3s; }
+        .aya-note:focus { border-color: var(--accent); background: var(--card); border-style: solid; box-shadow: 0 0 5px rgba(197, 155, 39, 0.3); }
+
+        /* تنسيقات القائمة المنسدلة للمحفظة */
+        .dropdown-menu { display: none; position: absolute; top: 110%; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; min-width: 170px; overflow: hidden; }
+        .dropdown-menu.show { display: block; }
+        .dropdown-menu button { display: block; width: 100%; text-align: right; padding: 12px 15px; background: none; border: none; border-bottom: 1px dashed var(--border); font-family: 'Tajawal'; font-size: 15px; color: var(--text); cursor: pointer; transition: 0.2s; }
+        .dropdown-menu button:last-child { border-bottom: none; }
+        .dropdown-menu button:hover { background: var(--bg); color: var(--primary); font-weight: bold; padding-right: 20px; }
+        
+        .grammar-dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto;}
+        .grammar-col { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        .grammar-total-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-family: 'Tajawal'; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; text-align: right; display: flex; justify-content: space-between; }
+        .grammar-item-btn { width: 100%; background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 6px; font-family: 'Tajawal'; font-size: 14px; cursor: pointer; transition: 0.2s; text-align: right; display: flex; flex-direction: column; gap: 5px; }
+        .grammar-item-btn:hover { border-color: var(--accent); background: var(--highlight-bg); color: #000; transform: scale(1.02); }
+        .grammar-item-header { display: flex; justify-content: space-between; font-weight: bold; }
+        .grammar-item-bar-bg { width: 100%; background: #ddd; height: 6px; border-radius: 3px; overflow: hidden; }
+        .grammar-item-bar-fill { height: 100%; background: var(--accent); }
+        body.dark-mode .grammar-item-btn { background: #1e1e1e; border-color: #444; }
+        body.dark-mode .grammar-item-bar-bg { background: #444; }
+
+        .analytics-container { background: var(--bg); padding: 20px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 30px;}
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px dashed var(--border); padding-bottom: 10px; }
+        .chart-header h3 { color: var(--primary); margin: 0; }
+        .chart-tools { display: flex; gap: 15px; font-size: 14px; background: var(--card); padding: 5px 15px; border-radius: 6px; border: 1px solid var(--border); align-items: center;}
+        .chart-col { display: flex; flex-direction: column; gap: 8px; }
+        .btn-tool { background: var(--primary); color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; font-family: 'Tajawal'; font-size: 12px; }
+        
+        .stats-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: var(--card); font-size: 15px;}
+        .stats-table th, .stats-table td { border: 1px solid var(--border); padding: 8px; text-align: center; }
+        .stats-table th { background-color: var(--primary); color: white; }
+        
+        .progress-bar-bg { width: 100%; background-color: #ddd; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        .progress-bar-fill { height: 100%; background-color: var(--accent); }
+        body.dark-mode .progress-bar-bg { background-color: #444; }
+
+        .collocations-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
+        .collocation-col { background: var(--card); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+        .word-cloud { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 15px; min-height: 120px; padding: 20px; margin-bottom: 15px; background: var(--bg); border-radius: 8px; }
+        .cloud-word { font-family: 'Amiri', serif; font-weight: bold; transition: transform 0.3s; }
+        .cloud-word:hover { transform: scale(1.2); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--card); padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; text-align: center; border: 2px solid var(--primary); position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; font-weight: bold; color: #d32f2f; transition: 0.3s; }
+        .modal-close:hover { color: #b71c1c; transform: scale(1.1); }
+        .modal-title { color: var(--primary); font-family: 'Amiri', serif; font-size: 32px; margin-bottom: 15px; }
+        .modal-text { font-size: 16px; line-height: 1.8; color: var(--text); }
+        .modal-divider { width: 50%; height: 2px; background: var(--accent); margin: 20px auto; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; justify-content: center; align-items: center; z-index: 3000; font-size: 24px; }
+
+        @media screen and (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+
+            .top-buttons-left, .top-buttons-right { position: relative; top: 0; right: 0; left: 0; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+            .header { margin-top: 10px; }
+            .header h1 { font-size: 28px; }
+
+            .search-bar { flex-direction: column; }
+            .search-bar button { width: 100%; padding: 12px; font-size: 16px; margin-top: 5px; }
+
+            .controls { grid-template-columns: 1fr; }
+            
+            /* ترتيب خيارات البحث الراديوية لمنع التداخل */
+            .control-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .control-row span { display: flex; flex-direction: column; gap: 10px; border-right: none !important; padding-right: 0 !important; margin-right: 0 !important; width: 100%; border-top: 1px dashed var(--border); padding-top: 10px; }
+            .control-row select { width: 100%; margin-bottom: 5px; }
+            
+            .stats-bar { flex-direction: column; gap: 15px; text-align: center; }
+            .actions-group { flex-wrap: wrap; justify-content: center; width: 100%; }
+            .btn-icon { flex: 1 1 45%; padding: 10px 5px; font-size: 13px; text-align: center; margin: 0; }
+            
+            .dropdown-menu { width: 100%; text-align: center; right: 0; }
+            .dropdown-menu button { text-align: center; }
+
+            .aya-card { font-size: 20px; line-height: 1.8; }
+            .aya-ref { display: block; margin-top: 10px; margin-bottom: 10px; }
+            
+            .collocations-grid, .grammar-dashboard { grid-template-columns: 1fr; }
+            
+            .chart-header { flex-direction: column; gap: 15px; text-align: center; }
+            .chart-tools { flex-direction: column; width: 100%; padding: 10px; box-sizing: border-box; }
+            .chart-col { border-left: none !important; border-bottom: 1px solid var(--border); padding-bottom: 10px; padding-left: 0 !important; width: 100%; align-items: center; }
+            .chart-col:last-child { border-bottom: none; padding-bottom: 0; }
+            
+            /* حل مشكلة اختفاء الرسم البياني بإجباره على ارتفاع محدد في الهاتف */
+            canvas#myChart { min-height: 250px !important; width: 100% !important; }
+            
+            .stats-table { display: block; overflow-x: auto; white-space: nowrap; font-size: 14px; }
+
+            .tabs-nav { flex-direction: column; position: static; }
+            .tab-item { border-bottom: none; border-right: 4px solid transparent; }
+            .tab-item.active { border-bottom: none; border-right: 4px solid var(--primary); }
+            body.dark-mode .tab-item.active { border-right: 4px solid var(--accent); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="overlay">تم إغلاق البرنامج بنجاح. يمكنك إغلاق هذه النافذة.</div>
+
+<div id="aboutModal" class="modal-overlay" onclick="closeAbout(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="modal-close" onclick="closeAbout()">&times;</span>
+        <div class="modal-title">الباحث في القرآن الكريم</div>
+        <div class="modal-text">
+            <strong>الإصدار:</strong> 3.0 (2026)<br><br>
+            هذا البرنامج <strong>مجاني بالكامل</strong> لخدمة كتاب الله والباحثين في علومه.<br>
+            <div class="modal-divider"></div>
+            💡 <strong>صاحب الفكرة:</strong><br>
+            <span style="font-size: 20px; font-weight: bold; color: var(--primary);">د. شعيب يحيى</span><br>
+            (جامعة سعيدة)
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="top-buttons-left">
+        {% if is_local %}
+        <button class="btn-close-app" onclick="shutdownApp()">إيقاف ⏻</button>
+        {% endif %}
+    </div>
+    <div class="top-buttons-right">
+        <button class="btn-top" onclick="openAbout()">عن البرنامج ℹ️</button>
+        <button class="btn-top" onclick="toggleDarkMode()">الوضع الليلي 🌙</button>
+    </div>
+ 
+    <div class="header"><h1>الباحث في القرآن الكريم</h1></div>
+
+    <nav class="tabs-nav" dir="rtl">
+        <button id="btn-tab-verbal" class="tab-item active" onclick="loadTab('verbal')">البحث اللفظي (الآيات والكلمات)</button>
+        <button id="btn-tab-grammar" class="tab-item" onclick="loadTab('grammar')">البحث النحوي والصرفي المتقدم</button>
+        {% if show_admin %}
+        <button id="btn-tab-consistency" class="tab-item" onclick="loadTab('consistency')">فحص التماسك (إداري) 🛠️</button>
+        {% endif %}
+    </nav>
+
+    <!-- حاويات التبويبات التي سيتم حقن المحتوى داخلها -->
+    <div id="tab-content-verbal" style="display: block;">
+        <div style="text-align: center; padding: 40px; color: var(--primary); font-size: 18px; font-weight: bold;">
+            جاري تحميل واجهة البحث اللفظي... ⏳
+        </div>
+    </div>
+    
+    <div id="tab-content-grammar" style="display: none;"></div>
+    <div id="tab-content-consistency" style="display: none;"></div>
+</div>
+
+<script>
+    // تتبع التبويبات المحملة
+    const loadedTabs = { verbal: false, grammar: false, consistency: false };
+
+    async function loadTab(tabName) {
+        const containers = {
+            verbal: document.getElementById('tab-content-verbal'),
+            grammar: document.getElementById('tab-content-grammar'),
+            consistency: document.getElementById('tab-content-consistency'),
+        };
+        const buttons = {
+            verbal: document.getElementById('btn-tab-verbal'),
+            grammar: document.getElementById('btn-tab-grammar'),
+            consistency: document.getElementById('btn-tab-consistency'),
+        };
+
+        // تبديل الواجهة فوراً
+        for (const name in containers) {
+            containers[name].style.display = (name === tabName) ? 'block' : 'none';
+            if (buttons[name]) buttons[name].classList.toggle('active', name === tabName);
+        }
+
+        // حفظ التبويب النشط
+        localStorage.setItem('activeTab', tabName);
+
+        // تحميل المحتوى إذا لم يتم تحميله مسبقاً
+        if (!loadedTabs[tabName]) {
+            try {
+                const response = await fetch(`/tab/${tabName}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const html = await response.text();
+
+                const container = containers[tabName];
+                container.innerHTML = html;
+
+                loadedTabs[tabName] = true;
+                executeScripts(container);
+            } catch (error) {
+                console.error("خطأ في تحميل التبويب:", error);
+                const container = containers[tabName];
+                container.innerHTML = '<div style="text-align: center; color: red; padding: 20px;">حدث خطأ أثناء تحميل الواجهة. يرجى تحديث الصفحة.</div>';
+            }
+        }
+    }
+
+    // دالة لتشغيل أكواد الجافاسكريبت المحقونة عبر AJAX
+    function executeScripts(container) {
+        const scripts = container.querySelectorAll("script");
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement("script");
+            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+    }
+
+    // دوال النوافذ المنبثقة
+    function openAbout() { document.getElementById('aboutModal').style.display = 'flex'; }
+    function closeAbout(e) { if(e) e.stopPropagation(); document.getElementById('aboutModal').style.display = 'none'; }
+
+    // الوضع الليلي مع الحفظ
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('quranDarkMode', isDark);
+        
+        const btns = document.querySelectorAll('.top-buttons-right .btn-top');
+        if (isDark) {
+            btns[1].innerHTML = "الوضع العادي ☀️"; 
+            if(typeof Chart !== 'undefined') Chart.defaults.color = '#e0e0e0';
+        } else {
+            btns[1].innerHTML = "الوضع الليلي 🌙"; 
+            if(typeof Chart !== 'undefined') Chart.defaults.color = '#333';
+        }
+        
+        // تحديث الرسم البياني إن وجد في تبويب البحث اللفظي
+        if (typeof updateAnalytics === 'function' && typeof chartObj !== 'undefined' && chartObj !== null) {
+            updateAnalytics();
+        }
+    }
+
+    // إغلاق البرنامج
+    function shutdownApp() {
+        if(confirm("هل أنت متأكد أنك تريد إيقاف البرنامج؟")) {
+            document.getElementById('overlay').style.display = 'flex';
+            fetch('/shutdown', { method: 'POST' }).catch(e => console.log(e));
+            setTimeout(() => {
+                window.open('', '_self', ''); 
+                window.close();
+            }, 500);
+        }
+    }
+
+    // التهيئة عند تحميل الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('quranDarkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            const btns = document.querySelectorAll('.top-buttons-right .btn-top');
+            btns[1].innerHTML = "الوضع العادي ☀️";
+            if(typeof Chart !== 'undefined') Chart.defaults.color = '#e0e0e0';
+        }
+        
+        let savedTab = localStorage.getItem('activeTab') || 'verbal';
+        // إن كان التبويب المحفوظ غير موجود (مخفي) نرجع للتبويب الأول
+        if (!document.getElementById('btn-tab-' + savedTab)) savedTab = 'verbal';
+        loadTab(savedTab);
+    });
+</script>
+</body>
+</html>
+
