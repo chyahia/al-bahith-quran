@@ -87,7 +87,7 @@ pyinstaller --name "Quran_Search" --noconsole --add-data "templates;templates" -
 | الجزء | المصدر | الترخيص |
 |---|---|---|
 | نصوص الآيات في `quran.db` (جدول `ayas`: النص المجرد، والمشكول الإملائي، والعثماني) | [Tanzil](https://tanzil.net): ملفات `quran-simple-clean` و`quran-simple` و`quran-uthmani` | المشاع الإبداعي، النَّسب 3.0 (CC BY 3.0). يُنقل النص كما هو دون أي تغيير، مع إشعار حقوق Tanzil ورابطه (انظر [`TANZIL_LICENSE.txt`](TANZIL_LICENSE.txt)) |
-| الجذور في `quran.db` (جدولا `roots` و`root_words`) | [Quranic Universal Library (QUL)](https://qul.tarteel.ai/resources/morphology) من Tarteel: مورد «Word root» | ذكروا أنه   (يمكن للباحثين والطلاب والمطورين الاستفادة من موارد QUL لبناء تطبيقات إسلامية، وإجراء تحليلات البيانات، وإجراء بحوث أو دراسات متقدمة متعلقة بالقرآن.) |
+| الجذور في `quran.db` (جدولا `roots` و`root_words`) | [Quranic Universal Library (QUL)](https://qul.tarteel.ai/resources/morphology) من Tarteel: مورد «Word root» | ذكروا أنه   (يمكن للباحثين والطلاب والمطورين الاستفادة من موارد QUL لبناء تطبيقات إسلامية، وإجراء تحليلات البيانات، وإجراء بحوث أو دراسات متقدمة متعلقة بالقرآن. انظر: https://qul.tarteel.ai/faq) |
 | التحليل الصرفي في `quran.db` (جدول `morphology`) | [Quranic Arabic Corpus](https://corpus.quran.com) الإصدار 0.4، د. قيس دوكس، جامعة ليدز. حُوّلت رموزه إلى مصطلحات نحوية عربية | GNU GPL، مع ذكر المصدر ورابطه وإرفاق إشعار حقوقه (انظر [`QURANIC_CORPUS_LICENSE.txt`](QURANIC_CORPUS_LICENSE.txt)) |
 | `MASAQ.db` | [MASAQ: Morphologically-Analyzed and Syntactically-Annotated Quran Dataset](https://data.mendeley.com/datasets/9yvrzxktmr/5) (الإصدار 5)، Sawalha وآخرون، DOI: [10.17632/9yvrzxktmr](https://doi.org/10.17632/9yvrzxktmr) | المشاع الإبداعي، النَّسب 3.0 (CC BY 3.0) |
 
