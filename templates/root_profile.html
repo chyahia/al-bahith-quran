@@ -1,0 +1,413 @@
+<!-- ================= تبويب «ملف الجذر» (القسم 20 من السجل) ================= -->
+<div class="card" style="padding: 20px;">
+    <h2 style="color: var(--primary); margin-bottom: 8px;">ملف الجذر</h2>
+    <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+        كل ما يتعلق بجذر واحد: صيغه المعجمية (اللمات)، وأسماؤه وأفعاله، وتوزيعه، والجذور المصاحبة له.
+        <br><span style="font-size: 12px;">المصادر: مواضع الجذور من QUL، واللمات من المدونة القرآنية (بالرسم العثماني كما في مصدرها)،
+        وتصنيف الاسم/الفعل من MASAQ بطريقة لوحة التبويب الأول نفسها.</span>
+    </p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <input id="rp_root" type="text" placeholder="الجذر (مثل: امن)" dir="rtl"
+               style="flex: 1; min-width: 180px; padding: 10px; font-family: 'Amiri'; font-size: 20px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text);"
+               onkeydown="if(event.key==='Enter') loadRootProfile();">
+        <label style="font-weight: bold;">نافذة المصاحبة:
+            <select id="rp_window" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card); color: var(--text);">
+                <option value="1">كلمة</option><option value="2">كلمتان</option><option value="3" selected>3 كلمات</option>
+                <option value="4">4 كلمات</option><option value="5">5 كلمات</option>
+            </select>
+        </label>
+        <button class="btn-icon" style="background: var(--primary);" onclick="loadRootProfile()">عرض الملف 🔎</button>
+        <button id="rp_cmp_btn" class="btn-icon" style="background: var(--accent);" onclick="toggleRootCompare()">+ مقارنة بجذر</button>
+        <button id="rp_export" class="btn-icon" style="background: #0D47A1; display: none;" onclick="exportRootProfile()">تصدير Word 📄</button>
+        <button id="rp_copy" class="btn-icon" style="background: #E67E22; display: none;" onclick="copyRootProfile()">نسخ الملف 📋</button>
+    </div>
+    <div id="rp_cmp_row" style="display: none; margin-top: 10px;">
+        <input id="rp_root2" type="text" placeholder="الجذر الثاني للمقارنة (مثل: كفر)" dir="rtl"
+               style="width: 100%; box-sizing: border-box; padding: 10px; font-family: 'Amiri'; font-size: 20px; border: 2px solid #c0392b; border-radius: 6px; background: var(--card); color: var(--text);"
+               onkeydown="if(event.key==='Enter') loadRootProfile();">
+    </div>
+</div>
+
+<div id="rp_loader" style="display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--primary);">جاري بناء ملف الجذر... ⏳</div>
+<div id="rp_body" style="display: none;">
+
+    <div id="rp_cmp_card" class="card" style="padding: 20px; margin-top: 15px; display: none; border: 2px solid #c0392b;">
+        <h3 id="rp_cmp_title" style="color: var(--primary); font-family: 'Amiri'; font-size: 26px; margin: 0 0 12px 0;"></h3>
+        <div style="overflow-x: auto;"><table id="rp_cmp_table" style="width: 100%; border-collapse: collapse;"></table></div>
+        <p id="rp_cmp_pair" style="font-weight: bold; line-height: 1.9; margin: 12px 0 4px 0;"></p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px;">
+            <span style="font-weight: bold;">عرض تفاصيل:</span>
+            <button id="rp_sw1" class="btn-icon" onclick="switchRootDetails(1)"></button>
+            <button id="rp_sw2" class="btn-icon" onclick="switchRootDetails(2)"></button>
+            <button id="rp_shared_btn" class="btn-icon" style="background: #455A64;" onclick="showSharedAyahs()">الآيات التي تجمعهما</button>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 id="rp_title" style="color: var(--primary); font-family: 'Amiri'; font-size: 28px; margin: 0 0 12px 0;"></h3>
+        <div id="rp_header" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;"></div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">صيغ الجذر (اللمات)</h3>
+        <div class="rp-scroll" style="max-height: 420px;"><table id="rp_lemmas" style="width: 100%; border-collapse: collapse;"></table></div>
+        <div id="rp_ayahs_wrap" style="display: none; margin-top: 15px;">
+            <h4 id="rp_ayahs_title" style="color: var(--primary); margin: 0 0 8px 0;"></h4>
+            <div id="rp_ayahs" class="rp-scroll" style="max-height: 420px;"></div>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">الأسماء والأفعال</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px;">
+            <div id="rp_nouns"></div><div id="rp_verbs"></div>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">التوزيع</h3>
+        <div style="margin-bottom: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <button class="btn-icon" style="background: var(--primary);" onclick="drawRootChart('mushaf')">ترتيب المصحف</button>
+            <button class="btn-icon" style="background: var(--accent);" onclick="drawRootChart('revelation')">ترتيب النزول</button>
+            <span style="margin-inline-start: 15px; font-weight: bold;">شكل الرسم:</span>
+            <button class="btn-icon" style="background: #455A64;" onclick="setRootChartType('bar')">أعمدة 📊</button>
+            <button class="btn-icon" style="background: #455A64;" onclick="setRootChartType('line')">خطي 📈</button>
+        </div>
+        <div style="height: 280px;"><canvas id="rp_chart"></canvas></div>
+        <h4 style="color: var(--primary);">أكثر السور ورودًا للجذر</h4>
+        <div id="rp_suras" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">الجذور المصاحبة</h3>
+        <p style="font-size: 13px; color: var(--text-muted, #666); line-height: 1.7;">
+            الجذور الواردة في نافذة من الكلمات قبل الجذر وبعده.
+            <b>عدد المصاحبة</b>: كم مرة اجتمعا. <b>قوة الارتباط</b>: نسبة الاجتماع الفعلي إلى المتوقع من شيوع الجذرين
+            (أكبر من 1 = يجتمعان أكثر من المتوقع)، ولا تُحسب للجذور القليلة الورود. انقر على جذر لفتح ملفه.
+        </p>
+        <div style="margin-bottom: 8px;">
+            <button class="btn-icon" style="background: var(--primary);" onclick="renderCo('count')">ترتيب بعدد المصاحبة</button>
+            <button class="btn-icon" style="background: var(--accent);" onclick="renderCo('assoc')">ترتيب بقوة الارتباط</button>
+        </div>
+        <div class="rp-scroll" style="max-height: 420px;"><table id="rp_co" style="width: 100%; border-collapse: collapse;"></table></div>
+    </div>
+</div>
+
+<style>
+    #rp_lemmas th, #rp_lemmas td, #rp_co th, #rp_co td, .rp-mini th, .rp-mini td {
+        border-bottom: 1px solid var(--border); padding: 8px; text-align: right; vertical-align: top;
+    }
+    #rp_lemmas th, #rp_co th, .rp-mini th { background: rgba(27, 94, 32, 0.08); }
+    .rp-stat { border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+    .rp-stat b { display: block; font-size: 22px; color: var(--primary); }
+    .rp-chip { display: inline-block; border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; margin: 2px; font-family: 'Amiri'; font-size: 17px; }
+    .rp-link { color: var(--primary); cursor: pointer; text-decoration: underline; font-family: 'Amiri'; font-size: 19px; }
+    .rp-scroll { overflow-y: auto; overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+    #rp_cmp_table th, #rp_cmp_table td { border-bottom: 1px solid var(--border); padding: 8px; text-align: center; }
+    #rp_cmp_table td:first-child, #rp_cmp_table th:first-child { text-align: right; }
+    #rp_co th, #rp_lemmas th { position: sticky; top: -8px; z-index: 1; background: var(--card); }
+    .rp-hl { background: #FFF59D; color: #B71C1C; font-weight: bold; border-radius: 4px; padding: 0 3px; }
+</style>
+
+<script>
+    var rpData = null;
+    var rpChartObj = null;
+    var rpChartKind = 'mushaf';
+    var rpChartType = 'bar';
+    var rpCompare = false;      // وضع المقارنة مفعّل في الواجهة
+    var rpData2 = null;         // ملف الجذر الثاني (إن كان البحث المعروض مقارنة)
+    var rpPair = null;          // اجتماع الجذرين
+    var rpActive = 1;           // الجذر الذي تُعرض تفاصيله
+    var rpSharedAyahs = null;
+    function rpCur() { return (rpActive === 2 && rpData2) ? rpData2 : rpData; }
+    function rpSp(r) { return String(r || '').split('').join(' '); }
+
+    function toggleRootCompare() {
+        rpCompare = !rpCompare;
+        document.getElementById('rp_cmp_row').style.display = rpCompare ? 'block' : 'none';
+        const b = document.getElementById('rp_cmp_btn');
+        b.textContent = rpCompare ? '- إلغاء المقارنة' : '+ مقارنة بجذر';
+        b.style.background = rpCompare ? '#c0392b' : 'var(--accent)';
+        if (!rpCompare && rpData2) { rpData2 = null; rpPair = null; rpActive = 1; renderRootProfile(); }
+    }
+
+    function switchRootDetails(n) {
+        rpActive = n;
+        renderRootDetails();
+    }
+
+    function setRootChartType(t) { rpChartType = t; drawRootChart(rpChartKind); }
+
+    function rpEsc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : String(s); return d.innerHTML; }
+
+    async function fetchProfile(root, win) {
+        const res = await fetch('/api/root_profile', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ root: root, window: win })
+        });
+        return res.json();
+    }
+
+    async function loadRootProfile(rootOverride) {
+        const input = document.getElementById('rp_root');
+        if (rootOverride) input.value = rootOverride;
+        const root = input.value.trim();
+        const root2 = rpCompare ? document.getElementById('rp_root2').value.trim() : '';
+        if (!root) { alert('اكتب الجذر أولًا.'); return; }
+        if (rpCompare && !root2) { alert('اكتب الجذر الثاني للمقارنة، أو ألغِ المقارنة.'); return; }
+        const win = parseInt(document.getElementById('rp_window').value);
+        document.getElementById('rp_loader').style.display = 'block';
+        document.getElementById('rp_body').style.display = 'none';
+        document.getElementById('rp_export').style.display = 'none';
+        document.getElementById('rp_copy').style.display = 'none';
+        try {
+            const data = await fetchProfile(root, win);
+            let data2 = null, pair = null;
+            if (root2) {
+                data2 = await fetchProfile(root2, win);
+                const pr = await fetch('/api/root_profile_pair', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ root1: root, root2: root2, window: win })
+                });
+                pair = await pr.json();
+            }
+            document.getElementById('rp_loader').style.display = 'none';
+            if (data.error || (data2 && data2.error)) { alert('خطأ: ' + (data.error || data2.error)); return; }
+            if (!data.total) { alert('لم يُعثر على الجذر «' + root + '».'); return; }
+            if (data2 && !data2.total) { alert('لم يُعثر على الجذر «' + root2 + '».'); return; }
+            rpData = data; rpData2 = data2; rpPair = (pair && !pair.error) ? pair : null;
+            rpActive = 1; rpSharedAyahs = null;
+            renderRootProfile();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (e) {
+            document.getElementById('rp_loader').style.display = 'none';
+            alert('تعذّر الاتصال بالخادم: ' + e);
+        }
+    }
+
+    function renderRootProfile() {
+        document.getElementById('rp_body').style.display = 'block';
+        document.getElementById('rp_export').style.display = 'inline-block';
+        document.getElementById('rp_copy').style.display = 'inline-block';
+        const card = document.getElementById('rp_cmp_card');
+        if (rpData2) {
+            const a = rpData, b = rpData2;
+            card.style.display = 'block';
+            document.getElementById('rp_cmp_title').textContent = 'مقارنة الجذرين «' + rpSp(a.root) + '» و«' + rpSp(b.root) + '»';
+            const rows = [
+                ['عدد المواضع', a.total, b.total], ['عدد الآيات', a.ayahs, b.ayahs], ['عدد السور', a.suras, b.suras],
+                ['مكي', a.meccan, b.meccan], ['مدني', a.medinan, b.medinan], ['عدد الصيغ (اللمات)', a.lemmas.length, b.lemmas.length],
+                ['الأسماء', a.nouns.total, b.nouns.total], ['الأفعال', a.verbs.total, b.verbs.total],
+                ['أول ورود (المصحف)', a.first_mushaf.name + ' ' + a.first_mushaf.aya, b.first_mushaf.name + ' ' + b.first_mushaf.aya],
+                ['أول ورود (النزول)', a.first_revelation.name + ' ' + a.first_revelation.aya, b.first_revelation.name + ' ' + b.first_revelation.aya],
+            ];
+            let t = `<tr><th>المؤشر</th><th style="color: var(--primary);">«${rpEsc(rpSp(a.root))}»</th><th style="color: #c0392b;">«${rpEsc(rpSp(b.root))}»</th></tr>`;
+            rows.forEach(r => { t += `<tr><td>${rpEsc(r[0])}</td><td><b>${rpEsc(r[1])}</b></td><td><b>${rpEsc(r[2])}</b></td></tr>`; });
+            document.getElementById('rp_cmp_table').innerHTML = t;
+            document.getElementById('rp_cmp_pair').textContent = rpPair
+                ? `يجتمع الجذران في ${rpPair.shared_ayahs} آية، ويقع «${rpSp(b.root)}» في نافذة ${rpPair.window} كلمات حول ${rpPair.near} موضعًا من مواضع «${rpSp(a.root)}».`
+                : '';
+            const s1 = document.getElementById('rp_sw1'), s2 = document.getElementById('rp_sw2');
+            s1.textContent = '«' + rpSp(a.root) + '»'; s2.textContent = '«' + rpSp(b.root) + '»';
+        } else {
+            card.style.display = 'none';
+        }
+        renderRootDetails();
+    }
+
+    // أقسام التفاصيل (اللمات، الأسماء والأفعال، التوزيع، المصاحبة) للجذر المختار
+    function renderRootDetails() {
+        const d = rpCur();
+        document.getElementById('rp_ayahs_wrap').style.display = 'none';
+        if (rpData2) {
+            document.getElementById('rp_sw1').style.background = rpActive === 1 ? 'var(--primary)' : '#9e9e9e';
+            document.getElementById('rp_sw2').style.background = rpActive === 2 ? '#c0392b' : '#9e9e9e';
+        }
+        document.getElementById('rp_title').textContent = 'جذر «' + rpSp(d.root) + '»';
+
+        const stats = [
+            ['عدد المواضع', d.total], ['عدد الآيات', d.ayahs], ['عدد السور', d.suras],
+            ['مكي / مدني', d.meccan + ' / ' + d.medinan], ['عدد الصيغ (اللمات)', d.lemmas.length],
+            ['أول ورود (المصحف)', d.first_mushaf.name + ' ' + d.first_mushaf.aya + ': ' + d.first_mushaf.word],
+            ['أول ورود (النزول)', d.first_revelation.name + ' ' + d.first_revelation.aya + ': ' + d.first_revelation.word],
+        ];
+        document.getElementById('rp_header').innerHTML = stats.map(s =>
+            `<div class="rp-stat"><span>${rpEsc(s[0])}</span><b style="font-size:${String(s[1]).length > 12 ? '16px' : '22px'}">${rpEsc(s[1])}</b></div>`).join('');
+
+        let t = '<tr><th>اللمة</th><th>النوع</th><th>العدد</th><th>النسبة</th><th>أكثر الصور ورودًا</th><th></th></tr>';
+        d.lemmas.forEach((l, i) => {
+            t += `<tr><td style="font-family:'Amiri'; font-size:22px;">${rpEsc(l.lemma)}</td><td>${rpEsc(l.pos)}</td>
+                  <td><b>${l.count}</b></td><td>${l.percent}%</td>
+                  <td>${l.forms.map(f => `<span class="rp-chip">${rpEsc(f.form)} <small>(${f.count})</small></span>`).join('')}</td>
+                  <td><button class="btn-icon" style="background: var(--accent); padding: 4px 10px;" onclick="showLemmaAyahs(${i})">الآيات</button></td></tr>`;
+        });
+        document.getElementById('rp_lemmas').innerHTML = t;
+
+        const mini = (title, block) => {
+            let h = `<h4 style="margin:0 0 6px 0;">${title} (${block.total})</h4><table class="rp-mini" style="width:100%; border-collapse:collapse;">`;
+            block.details.forEach(x => { h += `<tr><td>${rpEsc(x[0])}</td><td><b>${x[1]}</b></td></tr>`; });
+            return h + '</table>';
+        };
+        document.getElementById('rp_nouns').innerHTML = mini('الأسماء', d.nouns);
+        document.getElementById('rp_verbs').innerHTML = mini('الأفعال', d.verbs);
+
+        document.getElementById('rp_suras').innerHTML = d.top_suras.map(s =>
+            `<span class="rp-chip" style="font-family:'Tajawal'; font-size:15px;">${rpEsc(s.name)}: <b>${s.count}</b></span>`).join('');
+        drawRootChart('mushaf');
+        renderCo('count');
+    }
+
+    function drawRootChart(kind) {
+        if (!rpData) return;
+        rpChartKind = kind;
+        const ctx = document.getElementById('rp_chart').getContext('2d');
+        if (rpChartObj) rpChartObj.destroy();
+        const mk = (prof, color) => ({
+            label: '«' + rpSp(prof.root) + '»', data: prof.distribution[kind].counts,
+            backgroundColor: color, borderColor: color.replace('0.7', '1'), borderWidth: 2,
+            fill: false, tension: 0.25, pointRadius: 4
+        });
+        const datasets = [mk(rpData, kind === 'mushaf' ? 'rgba(27, 94, 32, 0.7)' : 'rgba(197, 155, 39, 0.7)')];
+        if (rpData2) datasets.push(mk(rpData2, 'rgba(192, 57, 43, 0.7)'));
+        rpChartObj = new Chart(ctx, {
+            type: rpChartType,
+            data: { labels: rpData.distribution[kind].labels, datasets: datasets },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                // هامش على الجانبين حتى لا يُقصّ اسم أول قطاع (الفاتحة) وآخره
+                layout: { padding: { right: 35, left: 20 } },
+                plugins: { legend: { display: !!rpData2, labels: { font: { family: 'Tajawal', size: 14 } } } },
+                scales: { x: { reverse: true, ticks: { font: { family: 'Tajawal' }, autoSkip: false } },
+                          y: { beginAtZero: true, ticks: { font: { family: 'Tajawal' } } } }
+            }
+        });
+    }
+
+    function renderCo(order) {
+        if (!rpData) return;
+        const cur = rpCur();
+        const list = order === 'assoc' ? cur.co_by_assoc : cur.co_by_count;
+        let t = '<tr><th>الجذر</th><th>عدد المصاحبة</th><th>ورود الجذر في القرآن</th><th>قوة الارتباط</th></tr>';
+        if (!list.length) t += '<tr><td colspan="4">لا توجد جذور مصاحبة كافية.</td></tr>';
+        list.forEach(c => {
+            t += `<tr><td><span class="rp-link" onclick="loadRootProfile('${rpEsc(c.root)}')">${rpEsc(c.root.split('').join(' '))}</span></td>
+                  <td><b>${c.count}</b></td><td>${c.root_freq}</td><td>${c.assoc === null ? '—' : c.assoc}</td></tr>`;
+        });
+        document.getElementById('rp_co').innerHTML = t;
+    }
+
+    async function showSharedAyahs() {
+        if (!rpData2) return;
+        const wrap = document.getElementById('rp_ayahs_wrap');
+        const box = document.getElementById('rp_ayahs');
+        const title = document.getElementById('rp_ayahs_title');
+        wrap.style.display = 'block';
+        title.innerHTML = '';
+        box.innerHTML = 'جاري جلب الآيات... ⏳';
+        // مواضع الجذر الأول في الآيات التي ورد فيها الجذر الثاني أيضًا
+        const ayas2 = new Set();
+        rpData2.lemmas.forEach(l => l.positions.forEach(p => ayas2.add(p[0] + ':' + p[1])));
+        const seen = new Set(), pos = [];
+        rpData.lemmas.forEach(l => l.positions.forEach(p => {
+            const k = p[0] + ':' + p[1];
+            if (ayas2.has(k) && !seen.has(k)) { seen.add(k); pos.push(p); }
+        }));
+        pos.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+        const res = await fetch('/api/root_profile_ayahs', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ positions: pos.map(p => [p[0], p[1], p[2], '']) })
+        });
+        const rows = await res.json();
+        title.innerHTML = `الآيات التي يجتمع فيها «${rpEsc(rpSp(rpData.root))}» و«${rpEsc(rpSp(rpData2.root))}» (${rows.length})`;
+        let h = '';
+        rows.forEach((r, k) => {
+            h += `<p style="font-family:'Amiri'; font-size:21px; line-height:2;">${k + 1}. ﴿ ${rpEsc(r.text)} ﴾
+                  <span style="font-family:'Tajawal'; font-size:14px; color:#777;">[${rpEsc(r.sura_name)}:${r.aya}]</span></p>`;
+        });
+        box.innerHTML = h || 'لا توجد آيات مشتركة.';
+        box.scrollTop = 0;
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function showLemmaAyahs(i) {
+        const l = rpCur().lemmas[i];
+        const wrap = document.getElementById('rp_ayahs_wrap');
+        const box = document.getElementById('rp_ayahs');
+        const title = document.getElementById('rp_ayahs_title');
+        wrap.style.display = 'block';
+        title.innerHTML = '';
+        box.innerHTML = 'جاري جلب الآيات... ⏳';
+        const res = await fetch('/api/root_profile_ayahs', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ positions: l.positions })
+        });
+        const rows = await res.json();
+        title.innerHTML = `آيات اللمة <span style="font-family:'Amiri'; font-size:22px;">${rpEsc(l.lemma)}</span> (${rows.length})`;
+        let h = '';
+        rows.forEach((r, k) => {
+            h += `<p style="font-family:'Amiri'; font-size:21px; line-height:2;">${k + 1}. ﴿ ${rpEsc(r.text)} ﴾
+                  <span style="font-family:'Tajawal'; font-size:14px; color:#777;">[${rpEsc(r.sura_name)}:${r.aya}]</span>
+                  ${r.word ? `<span class="rp-chip" style="font-size:16px; border-color: var(--accent);">الكلمة: ${rpEsc(r.word)}</span>` : ''}</p>`;
+        });
+        box.innerHTML = h;
+        box.scrollTop = 0;
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function exportRootProfile() {
+        if (!rpData) return;
+        const btn = document.getElementById('rp_export');
+        const old = btn.textContent;
+        btn.textContent = 'جاري التصدير... ⏳';
+        try {
+            const canvas = document.getElementById('rp_chart');
+            const res = await fetch('/api/root_profile_word', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile: rpData, profile2: rpData2, pair: rpPair,
+                                       chart: canvas ? canvas.toDataURL('image/png') : null })
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'ملف_الجذر_' + rpData.root + (rpData2 ? '_' + rpData2.root : '') + '.docx';
+            document.body.appendChild(a); a.click(); a.remove();
+            btn.textContent = 'تم التصدير ✔';
+        } catch (e) {
+            btn.textContent = 'حدث خطأ!';
+            console.error(e);
+        }
+        setTimeout(() => { btn.textContent = old; }, 2500);
+    }
+    function copyRootProfile() {
+        if (!rpData) return;
+        const sp = rpSp;
+        const L = [];
+        if (rpData2) {
+            const a = rpData, b = rpData2;
+            L.push('الباحث في القرآن الكريم — مقارنة الجذرين «' + sp(a.root) + '» و«' + sp(b.root) + '»');
+            L.push(`المواضع: ${a.total} / ${b.total} | الآيات: ${a.ayahs} / ${b.ayahs} | السور: ${a.suras} / ${b.suras}`);
+            L.push(`مكي: ${a.meccan} / ${b.meccan} | مدني: ${a.medinan} / ${b.medinan} | الأسماء: ${a.nouns.total} / ${b.nouns.total} | الأفعال: ${a.verbs.total} / ${b.verbs.total}`);
+            if (rpPair) L.push(`يجتمعان في ${rpPair.shared_ayahs} آية، و«${sp(b.root)}» في نافذة ${rpPair.window} كلمات حول ${rpPair.near} موضعًا من مواضع «${sp(a.root)}».`);
+            L.push('', '==========', '');
+        }
+        (rpData2 ? [rpData, rpData2] : [rpData]).forEach((d, idx) => {
+        if (idx) L.push('', '==========', '');
+        L.push('ملف الجذر «' + sp(d.root) + '»');
+        L.push(`عدد المواضع: ${d.total} | الآيات: ${d.ayahs} | السور: ${d.suras} | مكي/مدني: ${d.meccan}/${d.medinan} | الصيغ: ${d.lemmas.length}`);
+        L.push(`أول ورود في المصحف: ${d.first_mushaf.name} ${d.first_mushaf.aya} (${d.first_mushaf.word}) — وفي النزول: ${d.first_revelation.name} ${d.first_revelation.aya} (${d.first_revelation.word})`);
+        L.push('', 'صيغ الجذر (اللمات):');
+        d.lemmas.forEach(l => L.push(`- ${l.lemma} [${l.pos}]: ${l.count} (${l.percent}%) — ${l.forms.map(f => f.form + ' (' + f.count + ')').join('، ')}`));
+        L.push('', `الأسماء (${d.nouns.total}): ` + d.nouns.details.map(x => x[0] + ' ' + x[1]).join('، '));
+        L.push(`الأفعال (${d.verbs.total}): ` + d.verbs.details.map(x => x[0] + ' ' + x[1]).join('، '));
+        L.push('', 'أكثر السور ورودًا: ' + d.top_suras.map(s => s.name + ' ' + s.count).join('، '));
+        L.push('', `الجذور المصاحبة (نافذة ${d.window} كلمات): ` + d.co_by_count.map(c => sp(c.root) + ' ' + c.count).join('، '));
+        if (d.co_by_assoc.length) L.push('الأقوى ارتباطًا: ' + d.co_by_assoc.map(c => sp(c.root) + ' ' + c.assoc).join('، '));
+        });
+        navigator.clipboard.writeText(L.join('\n')).then(() => {
+            const b = document.getElementById('rp_copy'), old = b.textContent;
+            b.textContent = 'تم النسخ ✔';
+            setTimeout(() => { b.textContent = old; }, 2000);
+        }).catch(() => alert('تعذّر النسخ إلى الحافظة.'));
+    }
+</script>

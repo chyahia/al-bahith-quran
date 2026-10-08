@@ -180,12 +180,44 @@
         <thead><tr><th>القطاع / القسم</th><th>عدد الآيات</th><th style="width: 40%">النسبة المئوية</th></tr></thead>
         <tbody id="statsTableBody"></tbody>
     </table>
+    <div id="topSurasBoxV" data-all="0" style="display:none; margin-top: 20px;"></div>
 </div>
 
 <!-- ================= أكواد الجافاسكريبت للبحث اللفظي ================= -->
 <script>
     // استخدام var بدلاً من let للمتغيرات الشاملة لمنع أخطاء إعادة الإعلان في AJAX
     var globalResults = [];
+
+    // ===== «أكثر السور ورودًا» (لكل أنواع البحث: المطابق والجزئي والجذر) =====
+    // lists: [{title, color, rows: [{name, occurrences, ayahs}]}]
+    var topSurasStateV = {};
+    function renderTopSurasV(boxId, lists) {
+        topSurasStateV[boxId] = lists;
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        const all = box.dataset.all === '1';
+        if (!lists.length || lists.every(l => !l.rows.length)) { box.style.display = 'none'; return; }
+        box.style.display = 'block';
+        const esc = v => { const d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; };
+        let h = `<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                   <h3 style="margin:0; color: var(--primary);">أكثر السور ورودًا</h3>
+                   <button class="btn-tool" onclick="(function(b){b.dataset.all = b.dataset.all==='1' ? '0' : '1'; renderTopSurasV('${boxId}', topSurasStateV['${boxId}']);})(document.getElementById('${boxId}'))">
+                     ${all ? 'عرض العشر الأوائل' : 'عرض كل السور'}</button></div>
+                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:15px;">`;
+        lists.forEach(l => {
+            const total = l.rows.reduce((a, r) => a + r.occurrences, 0);
+            const rows = all ? l.rows : l.rows.slice(0, 10);
+            h += `<div><div style="font-weight:bold; margin-bottom:6px; color:${l.color};">${esc(l.title)} — في ${l.rows.length} سورة</div>
+                  <div style="max-height:380px; overflow-y:auto; border:1px solid var(--border); border-radius:8px;">
+                  <table class="stats-table" style="margin:0;"><thead><tr><th>#</th><th>السورة</th><th>المواضع</th><th>الآيات</th><th>النسبة</th></tr></thead><tbody>`;
+            rows.forEach((r, i) => {
+                const pct = total ? ((r.occurrences / total) * 100).toFixed(1) : 0;
+                h += `<tr><td>${i + 1}</td><td><strong>${esc(r.name)}</strong></td><td style="color:${l.color}; font-weight:bold;">${r.occurrences}</td><td>${r.ayahs}</td><td>${pct}%</td></tr>`;
+            });
+            h += '</tbody></table></div></div>';
+        });
+        box.innerHTML = h + '</div>';
+    }
     var currentWords = [];
     var chartObj = null;
     var chartDataStore = {};
@@ -378,6 +410,9 @@
 
             resetAndRender(); 
             updateAnalytics(); 
+            const tsLists = [{ title: query1Name, color: 'var(--accent)', rows: data1.top_suras || [] }];
+            if (data2) tsLists.push({ title: query2Name, color: '#c0392b', rows: data2.top_suras || [] });
+            renderTopSurasV('topSurasBoxV', tsLists);
             
             if (data2) {
                 document.getElementById('collocationSection').style.display = 'none';

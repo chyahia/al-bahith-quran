@@ -365,6 +365,49 @@ def pick_stem_for_root(segments, strong_root_chars):
             segments = own
     return pick_stem_segment(segments)
 
+# ---------------------------------------------------------------------------
+# مستويا الشروط في البحث النحوي (القسم 19 من السجل):
+#  - الوسم الصرفي والموقع النحوي والحالة الإعرابية: على الجذع وحده (الكلمة نفسها).
+#  - «الضمير المتصل بالكلمة»: على ضمائرها المتصلة (ومنها المحذوفة رسمًا في صفوف Other_i3rab).
+# ---------------------------------------------------------------------------
+GROUP_NOUNS = 'GROUP_NOUNS'
+GROUP_VERBS = 'GROUP_VERBS'
+ATTACHED_ROLES = ('AGNT', 'PASS_SUBJ', 'OBJ', 'GEN_CONS', 'PREP_OBJ', 'SUBJ_COP_PART', 'SUBJ_COP_V')
+_NOUN_TAGS_CACHE = None
+
+
+def noun_tags(conn):
+    """كل أوسمة الأسماء الموجودة في القاعدة: ما يصنّفه classify_masaq_segment اسمًا
+    (تعريف «الاسم» نفسه في لوحة التبويب 1). تُحسب مرة واحدة."""
+    global _NOUN_TAGS_CACHE
+    if _NOUN_TAGS_CACHE is None:
+        tags = [r[0] for r in conn.execute("SELECT DISTINCT Morph_Tag FROM MASAQ") if r[0] is not None]
+        _NOUN_TAGS_CACHE = {t for t in tags if (classify_masaq_segment(t, None) or ('',))[0] == 'noun'}
+    return _NOUN_TAGS_CACHE
+
+
+def morph_tag_set(morph_tag, conn):
+    """الأوسمة التي يقبلها اختيار «الوسم الصرفي»، أو None للاختيار الفردي العادي."""
+    if morph_tag == GROUP_VERBS:
+        return VERB_TAGS
+    if morph_tag == GROUP_NOUNS:
+        return noun_tags(conn)
+    if morph_tag == 'NOUN_PROP':
+        # «اسم علم» يشمل العربي والأعجمي؛ و«علم أعجمي» (NOUN_PROP_FOREIGN) اختيار مستقل
+        return {'NOUN_PROP', 'NOUN_PROP_FOREIGN'}
+    return None
+
+
+def is_attached_pronoun(seg):
+    """مقطع ضمير متصل: وسمه ضمير أو لاحقة فاعل/مفعول للفعل، أو صف Other_i3rab (وسمه النص 'None')."""
+    t = str(seg['Morph_Tag'] or 'None').upper()
+    # اصطلاح القاعدة: حين تُحذف واو الجماعة قبل نون التوكيد يوضع موقع الفاعل المحذوف على النون
+    # («لَيُؤْمِنُنَّ»: 31 موضعًا)؛ فالنون التي تحمل موقع ضمير تُعدّ ضميرًا متصلًا، والحرفية (NON_INFLECT) لا.
+    if t == 'EMPHATIC_NUN':
+        return str(seg['Syntactic_Role']) in ATTACHED_ROLES
+    return 'PRON' in t or 'SUFF_SUBJ' in t or 'SUFF_DO' in t or t == 'NONE'
+
+
 def search_grammar(filters):
     masaq_conn = get_db_connection('MASAQ.db')
     quran_conn = get_db_connection('quran.db')
@@ -442,6 +485,8 @@ def search_grammar(filters):
     morph_tag = filters.get('morph_tag', 'all')
     syntactic_role = filters.get('syntactic_role', 'all')
     case_mood = filters.get('case_mood', 'all')
+    attached_role = filters.get('attached_role', 'all') or 'all'
+    morph_set = morph_tag_set(morph_tag, masaq_conn) if morph_tag != 'all' else None
     search_text_clean = strip_diacritics(search_text) if search_text else ""
 
     def _iter_word_groups():
@@ -488,31 +533,35 @@ def search_grammar(filters):
                 elif search_type == 'contains' and search_text_clean not in word_clean:
                     continue
 
+        # الشروط الثلاثة على الجذع وحده (الكلمة نفسها، لا ضمائرها المتصلة)
+        stem_tag = str(stem['Morph_Tag'])
+        stem_role = str(stem['Syntactic_Role'] or 'None')
+
         if morph_tag != 'all':
-            if morph_tag == 'NOUN_DIVINE_NAME':
-                # تضمين لفظ الجلالة والرحمن ضمن نتائج "الأسماء الحسنى" دون تغيير وسمهما (يبقيان اسم علم)
-                # الكلمة قد تكون ملتصقة بحرف جر (لله، بالله، تالله...)، فنتحقق من نهاية الكلمة لا تطابقها الكامل
-                def _is_divine_proper(seg):
-                    if str(seg['Morph_Tag']) != 'NOUN_PROP':
-                        return False
-                    w = strip_diacritics(seg['Word'])
-                    return any(w.endswith(name) for name in DIVINE_NAME_PROPER_NOUNS)
-                is_match = any(
-                    str(seg['Morph_Tag']) == 'NOUN_DIVINE_NAME' or _is_divine_proper(seg)
-                    for seg in segs
-                )
-                if not is_match:
+            if morph_set is not None:
+                if stem_tag not in morph_set:
                     continue
-            elif not any(str(seg['Morph_Tag']) == morph_tag for seg in segs):
+            elif morph_tag == 'NOUN_DIVINE_NAME':
+                # لفظ الجلالة والرحمن ضمن «الأسماء الحسنى» دون تغيير وسمهما (يبقيان اسم علم)
+                if not (stem_tag == 'NOUN_DIVINE_NAME' or
+                        (stem_tag == 'NOUN_PROP' and any(word_clean.endswith(n) for n in DIVINE_NAME_PROPER_NOUNS))):
+                    continue
+            elif stem_tag != morph_tag:
                 continue
 
         if syntactic_role != 'all':
             if syntactic_role in SYNTACTIC_ROLE_GROUPS:
-                allowed = SYNTACTIC_ROLE_GROUPS[syntactic_role]
-                if not any(str(seg['Syntactic_Role']) in allowed for seg in segs):
+                if stem_role not in SYNTACTIC_ROLE_GROUPS[syntactic_role]:
                     continue
-            elif not any(str(seg['Syntactic_Role'] or 'None') == syntactic_role for seg in segs):
+            elif stem_role != syntactic_role:
                 continue
+
+        # الضمائر المتصلة بالكلمة ومواقعها (للفلتر الرابع وللعرض)
+        pronoun_roles = [str(seg['Syntactic_Role']) for seg in segs
+                         if seg is not stem and is_attached_pronoun(seg)
+                         and str(seg['Syntactic_Role']) in ATTACHED_ROLES]
+        if attached_role != 'all' and attached_role not in pronoun_roles:
+            continue
 
         # الفلترة بالحالة تُطبق على الجذع فقط (يحل مشكلة الأفعال المضارعة)
         if case_mood != 'all':
@@ -524,7 +573,7 @@ def search_grammar(filters):
                 if raw != case_mood:
                     continue
 
-        final_masaq_rows.append(stem)
+        final_masaq_rows.append(dict(stem, _pronoun_roles=pronoun_roles))
 
     unique_ayahs = list(set([(row['Sura_No'], row['Verse_No']) for row in final_masaq_rows]))
     ayah_dict = {}
@@ -552,6 +601,7 @@ def search_grammar(filters):
                 'morph_tag': row.get('Morph_Tag', ''),
                 'syntactic_role': row.get('Syntactic_Role', ''),
                 'case_mood': row.get('Case_Mood', ''),
+                'pronoun_roles': row.get('_pronoun_roles', []),
                 'sura_name': aya_data['sura_name'],
                 'text_uthmani': aya_data['text_uthmani'],
                 'text_tashkeel': aya_data['text_tashkeel'],

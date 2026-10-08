@@ -1,0 +1,368 @@
+<!-- ================= تبويب «الإحصاء العام» (القسم 21 من السجل) ================= -->
+<div class="card" style="padding: 20px;">
+    <h2 style="color: var(--primary); margin-bottom: 8px;">الإحصاء العام</h2>
+    <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+        ترتيب الجذور، وجدول السور وملف كل سورة، والموازنة بين المكي والمدني.
+        <br><span style="font-size: 12px;">المصادر كـ«ملف الجذر»: مواضع الجذور من QUL، والصيغ من المدونة القرآنية،
+        وتصنيف الكلمة (اسم/فعل/حرف أو أداة) من MASAQ بطريقة لوحة التبويب الأول. عدد الكلمات عدد كلمات MASAQ.
+        المكي: ما ترتيب نزوله 86 فما دون.</span>
+    </p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <button id="gs_nav_roots" class="btn-icon" onclick="gsShow('roots')">ترتيب الجذور</button>
+        <button id="gs_nav_suras" class="btn-icon" onclick="gsShow('suras')">السور</button>
+        <button id="gs_nav_mm" class="btn-icon" onclick="gsShow('mm')">المكي والمدني</button>
+        <span style="flex: 1;"></span>
+        <button class="btn-icon" style="background: #217346;" onclick="gsExport()">تصدير Excel 📗</button>
+        <button id="gs_copy" class="btn-icon" style="background: #E67E22;" onclick="gsCopy()">نسخ القسم 📋</button>
+    </div>
+</div>
+
+<div id="gs_loader" style="text-align: center; padding: 20px; font-weight: bold; color: var(--primary);">
+    جاري حساب الإحصاء العام (أول مرة فقط، قد يستغرق ثواني)... ⏳
+</div>
+
+<div id="gs_body" style="display: none;">
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <div id="gs_overview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;"></div>
+    </div>
+
+    <!-- 1. ترتيب الجذور -->
+    <div id="gs_sec_roots" class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">ترتيب الجذور بحسب ورودها</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+            <input id="gs_root_filter" type="text" placeholder="تصفية بجذر أو جزء منه..." dir="rtl" oninput="gsRenderRoots()"
+                   style="flex: 1; min-width: 160px; padding: 8px; font-family: 'Amiri'; font-size: 18px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--text);">
+            <select id="gs_root_sort" onchange="gsRenderRoots()"
+                    style="padding: 8px; border-radius: 5px; border: 1px solid var(--border); background: var(--card); color: var(--text);">
+                <option value="count">بالمواضع</option>
+                <option value="ayahs">بالآيات</option>
+                <option value="suras">بعدد السور</option>
+                <option value="lemmas">بعدد الصيغ</option>
+                <option value="meccan_pct">بنسبة المكي</option>
+                <option value="alpha">ألفبائيًا</option>
+            </select>
+            <span id="gs_root_info" style="font-size: 13px; color: #777;"></span>
+        </div>
+        <div class="gs-scroll" style="max-height: 520px;"><table id="gs_roots" class="gs-table"></table></div>
+        <div style="text-align: center; margin-top: 8px;">
+            <button id="gs_root_more" class="btn-icon" style="background: #455A64;" onclick="gsRootsAll = !gsRootsAll; gsRenderRoots();"></button>
+        </div>
+        <p style="font-size: 12px; color: #777; margin: 6px 0 0 0;">انقر على جذر لفتح ملفه في تبويب «ملف الجذر».</p>
+    </div>
+
+    <!-- 2. السور -->
+    <div id="gs_sec_suras" style="display: none;">
+        <div class="card" style="padding: 20px; margin-top: 15px;">
+            <h3 style="color: var(--primary); margin-top: 0;">نسبة الأفعال إلى الأسماء في كل سورة</h3>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+                <button class="btn-icon" style="background: var(--primary);" onclick="gsChartOrder='mushaf'; gsDrawChart();">ترتيب المصحف</button>
+                <button class="btn-icon" style="background: var(--accent);" onclick="gsChartOrder='rev'; gsDrawChart();">ترتيب النزول</button>
+            </div>
+            <p style="font-size: 13px; margin: 0 0 6px 0;"><span style="color: #27AE60; font-weight: bold;">■ مكية</span>
+               &nbsp; <span style="color: #2980B9; font-weight: bold;">■ مدنية</span>
+               &nbsp; <span style="color: #777;">(انقر على عمود لعرض ملف السورة)</span></p>
+            <div style="height: 300px;"><canvas id="gs_chart"></canvas></div>
+        </div>
+        <div class="card" style="padding: 20px; margin-top: 15px;">
+            <h3 style="color: var(--primary); margin-top: 0;">جدول السور</h3>
+            <p style="font-size: 12px; color: #777; margin: 0 0 8px 0;">انقر على عنوان عمود للترتيب به، وعلى سورة لعرض ملفها.</p>
+            <div class="gs-scroll" style="max-height: 520px;"><table id="gs_suras" class="gs-table"></table></div>
+        </div>
+        <div id="gs_sura_card" class="card" style="padding: 20px; margin-top: 15px; display: none; border: 2px solid var(--accent);">
+            <div id="gs_sura_body"></div>
+        </div>
+    </div>
+
+    <!-- 3. المكي والمدني -->
+    <div id="gs_sec_mm" style="display: none;">
+        <div class="card" style="padding: 20px; margin-top: 15px;">
+            <h3 style="color: var(--primary); margin-top: 0;">الموازنة بين المكي والمدني</h3>
+            <div style="overflow-x: auto;"><table id="gs_mm_table" class="gs-table"></table></div>
+        </div>
+        <div class="card" style="padding: 20px; margin-top: 15px;">
+            <h3 style="color: var(--primary); margin-top: 0;">أكثر الجذور ورودًا</h3>
+            <div class="gs-grid"><div id="gs_top_m"></div><div id="gs_top_d"></div></div>
+        </div>
+        <div class="card" style="padding: 20px; margin-top: 15px;">
+            <h3 style="color: var(--primary); margin-top: 0;">الجذور الأميل إلى أحدهما</h3>
+            <p id="gs_lean_note" style="font-size: 13px; color: #777; line-height: 1.7; margin: 0 0 8px 0;"></p>
+            <div class="gs-grid"><div id="gs_lean_m"></div><div id="gs_lean_d"></div></div>
+        </div>
+        <div class="card" style="padding: 20px; margin-top: 15px;">
+            <h3 style="color: var(--primary); margin-top: 0;">جذور لم ترد إلا في أحدهما</h3>
+            <div class="gs-grid"><div id="gs_excl_m"></div><div id="gs_excl_d"></div></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .gs-table { width: 100%; border-collapse: collapse; }
+    .gs-table th, .gs-table td { border-bottom: 1px solid var(--border); padding: 7px 8px; text-align: center; white-space: nowrap; }
+    .gs-table th { position: sticky; top: -8px; z-index: 1; background: var(--card); cursor: default; }
+    .gs-table th.gs-sortable { cursor: pointer; text-decoration: underline dotted; }
+    .gs-table tr.gs-row:hover { background: rgba(27, 94, 32, 0.06); cursor: pointer; }
+    .gs-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+    .gs-stat { border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; }
+    .gs-stat b { display: block; font-size: 22px; color: var(--primary); }
+    .gs-link { color: var(--primary); cursor: pointer; text-decoration: underline; font-family: 'Amiri'; font-size: 19px; }
+    .gs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .gs-nav-on { background: var(--primary) !important; }
+    .gs-nav-off { background: #9e9e9e !important; }
+</style>
+
+<script>
+    var gsData = null;
+    var gsSection = 'roots';
+    var gsRootsAll = false;
+    var gsSuraSort = { key: 'id', dir: 1 };
+    var gsChartOrder = 'mushaf';
+    var gsChartObj = null;
+    var gsSura = null;              // ملف السورة المعروض
+
+    function gsEsc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : String(s); return d.innerHTML; }
+    function gsSp(r) { return String(r || '').split('').join(' '); }
+    function gsNum(x) { return (x === null || x === undefined) ? '—' : x; }
+    function gsRootLink(r) { return `<span class="gs-link" onclick="gsOpenRoot('${gsEsc(r)}')">${gsEsc(gsSp(r))}</span>`; }
+
+    // فتح الجذر في تبويب «ملف الجذر» (يُحمَّل التبويب إن لم يكن محمَّلًا)
+    async function gsOpenRoot(r) {
+        await loadTab('root_profile');
+        if (typeof loadRootProfile === 'function') {
+            if (typeof rpCompare !== 'undefined' && rpCompare && typeof toggleRootCompare === 'function') toggleRootCompare();
+            loadRootProfile(gsSp(r));
+        }
+    }
+
+    function gsShow(sec) {
+        gsSection = sec;
+        ['roots', 'suras', 'mm'].forEach(s => {
+            document.getElementById('gs_sec_' + s).style.display = (s === sec) ? 'block' : 'none';
+            const b = document.getElementById('gs_nav_' + s);
+            b.classList.toggle('gs-nav-on', s === sec);
+            b.classList.toggle('gs-nav-off', s !== sec);
+        });
+        if (sec === 'suras' && gsData) gsDrawChart();
+    }
+
+    async function gsLoad() {
+        try {
+            const res = await fetch('/api/general_stats');
+            const data = await res.json();
+            document.getElementById('gs_loader').style.display = 'none';
+            if (data.error) { alert('خطأ: ' + data.error); return; }
+            gsData = data;
+            document.getElementById('gs_body').style.display = 'block';
+            gsRenderOverview();
+            gsRenderRoots();
+            gsRenderSuras();
+            gsRenderMM();
+            gsShow(gsSection);
+        } catch (e) {
+            document.getElementById('gs_loader').textContent = 'تعذّر الاتصال بالخادم: ' + e;
+        }
+    }
+
+    function gsRenderOverview() {
+        const o = gsData.overview;
+        const stats = [
+            ['السور', o.suras], ['الآيات', o.ayas], ['الكلمات', o.words],
+            ['الأسماء', o.nouns], ['الأفعال', o.verbs], ['حروف وأدوات', o.other],
+            ['مواضع الجذور', o.root_positions], ['الجذور المختلفة', o.distinct_roots], ['الصيغ (اللمات)', o.distinct_lemmas],
+        ];
+        document.getElementById('gs_overview').innerHTML = stats.map(s =>
+            `<div class="gs-stat"><span>${gsEsc(s[0])}</span><b>${gsEsc(s[1])}</b></div>`).join('');
+    }
+
+    // ---------------------------------------------------------------- الجذور
+    function gsFilteredRoots() {
+        const f = document.getElementById('gs_root_filter').value.replace(/\s/g, '');
+        const key = document.getElementById('gs_root_sort').value;
+        let list = gsData.roots.filter(x => !f || x.root.includes(f));
+        const val = x => key === 'meccan_pct' ? x.meccan / x.count : x[key];
+        if (key === 'alpha') list = list.slice().sort((a, b) => a.root.localeCompare(b.root, 'ar'));
+        else if (key !== 'count') list = list.slice().sort((a, b) => (val(b) - val(a)) || (b.count - a.count) || (a.rank - b.rank));
+        return list;
+    }
+
+    function gsRenderRoots() {
+        const list = gsFilteredRoots();
+        const shown = gsRootsAll ? list : list.slice(0, 200);
+        let t = '<tr><th>الترتيب</th><th>الجذر</th><th>المواضع</th><th>الآيات</th><th>السور</th><th>مكي</th><th>مدني</th><th>نسبة المكي</th><th>الصيغ</th></tr>';
+        shown.forEach(x => {
+            t += `<tr><td>${x.rank}</td><td>${gsRootLink(x.root)}</td><td><b>${x.count}</b></td><td>${x.ayahs}</td><td>${x.suras}</td>
+                  <td>${x.meccan}</td><td>${x.medinan}</td><td>${(100 * x.meccan / x.count).toFixed(1)}%</td><td>${x.lemmas}</td></tr>`;
+        });
+        if (!shown.length) t += '<tr><td colspan="9">لا جذور مطابقة.</td></tr>';
+        document.getElementById('gs_roots').innerHTML = t;
+        document.getElementById('gs_root_info').textContent = `${list.length} جذرًا` + (list.length > shown.length ? ` (يُعرض ${shown.length})` : '');
+        const more = document.getElementById('gs_root_more');
+        more.style.display = list.length > 200 ? 'inline-block' : 'none';
+        more.textContent = gsRootsAll ? 'عرض أول 200' : `عرض الكل (${list.length})`;
+    }
+
+    // ---------------------------------------------------------------- السور
+    var gsSuraCols = [
+        ['id', 'رقم'], ['name', 'السورة'], ['type', 'النوع'], ['rev', 'النزول'], ['ayas', 'الآيات'], ['words', 'الكلمات'],
+        ['nouns', 'الأسماء'], ['verbs', 'الأفعال'], ['other', 'حروف وأدوات'], ['verb_noun', 'الأفعال/الأسماء'],
+        ['verbs_pct', 'نسبة الأفعال'], ['root_positions', 'مواضع الجذور'], ['distinct_roots', 'جذور مختلفة'],
+    ];
+
+    function gsSortSuras(key) {
+        gsSuraSort = (gsSuraSort.key === key) ? { key: key, dir: -gsSuraSort.dir } : { key: key, dir: (key === 'id' || key === 'rev' || key === 'name' || key === 'type') ? 1 : -1 };
+        gsRenderSuras();
+    }
+
+    function gsRenderSuras() {
+        const k = gsSuraSort.key, dir = gsSuraSort.dir;
+        const list = gsData.suras.slice().sort((a, b) => {
+            const x = a[k], y = b[k];
+            const c = (typeof x === 'string') ? x.localeCompare(y, 'ar') : ((x === null ? -1 : x) - (y === null ? -1 : y));
+            return (c * dir) || (a.id - b.id);
+        });
+        let t = '<tr>' + gsSuraCols.map(c => `<th class="gs-sortable" onclick="gsSortSuras('${c[0]}')">${c[1]}${c[0] === k ? (dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
+        list.forEach(x => {
+            t += `<tr class="gs-row" onclick="gsOpenSura(${x.id})"><td>${x.id}</td><td><b>${gsEsc(x.name)}</b></td><td>${x.type}</td><td>${gsNum(x.rev)}</td>
+                  <td>${x.ayas}</td><td>${x.words}</td><td>${x.nouns}</td><td>${x.verbs}</td><td>${x.other}</td>
+                  <td><b>${gsNum(x.verb_noun)}</b></td><td>${x.verbs_pct}%</td><td>${x.root_positions}</td><td>${x.distinct_roots}</td></tr>`;
+        });
+        document.getElementById('gs_suras').innerHTML = t;
+    }
+
+    function gsDrawChart() {
+        const canvas = document.getElementById('gs_chart');
+        if (!canvas || typeof Chart === 'undefined') return;
+        const list = gsData.suras.slice().sort((a, b) => gsChartOrder === 'rev' ? (a.rev || 999) - (b.rev || 999) : a.id - b.id);
+        if (gsChartObj) gsChartObj.destroy();
+        gsChartObj = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: list.map(x => x.name),
+                datasets: [{
+                    label: 'الأفعال/الأسماء', data: list.map(x => x.verb_noun),
+                    backgroundColor: list.map(x => x.type === 'مكية' ? 'rgba(39, 174, 96, 0.75)' : 'rgba(41, 128, 185, 0.75)'),
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { right: 35, left: 20 } },
+                onClick: (evt, els) => { if (els.length) gsOpenSura(list[els[0].index].id); },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { afterLabel: c => list[c.dataIndex].type + ' — ' + list[c.dataIndex].words + ' كلمة' } }
+                },
+                scales: { x: { reverse: true, ticks: { font: { family: 'Tajawal', size: 10 }, autoSkip: false, maxRotation: 90, minRotation: 90 } },
+                          y: { beginAtZero: true, ticks: { font: { family: 'Tajawal' } } } }
+            }
+        });
+    }
+
+    async function gsOpenSura(id) {
+        const card = document.getElementById('gs_sura_card');
+        const body = document.getElementById('gs_sura_body');
+        card.style.display = 'block';
+        body.innerHTML = 'جاري بناء ملف السورة... ⏳';
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        try {
+            const res = await fetch('/api/general_stats_sura?id=' + id);
+            const d = await res.json();
+            if (d.error) { body.textContent = 'خطأ: ' + d.error; return; }
+            gsSura = d;
+            const stats = [
+                ['النوع', d.type], ['ترتيب النزول', gsNum(d.rev)], ['الآيات', d.ayas], ['الكلمات', d.words],
+                ['الأسماء', d.nouns], ['الأفعال', d.verbs], ['حروف وأدوات', d.other], ['الأفعال/الأسماء', gsNum(d.verb_noun)],
+                ['مواضع الجذور', d.root_positions], ['جذور مختلفة', d.distinct_roots],
+            ];
+            const mini = (title, rows) => `<div><h4 style="margin: 0 0 6px 0;">${title}</h4><table class="gs-table">` +
+                (rows.length ? rows.map(r => `<tr><td style="text-align: right;">${gsEsc(r[0])}</td><td><b>${r[1]}</b></td></tr>`).join('') : '<tr><td>—</td></tr>') + '</table></div>';
+            let h = `<h3 style="color: var(--primary); font-family: 'Amiri'; font-size: 26px; margin: 0 0 12px 0;">سورة ${gsEsc(d.name)} (${d.id})</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px;">` +
+                stats.map(s => `<div class="gs-stat"><span>${gsEsc(s[0])}</span><b>${gsEsc(s[1])}</b></div>`).join('') + '</div>';
+            h += `<div class="gs-grid" style="margin-bottom: 16px;">${mini('الأسماء (' + d.nouns + ')', d.noun_labels)}${mini('الأفعال (' + d.verbs + ')', d.verb_labels)}</div>`;
+            h += '<div class="gs-grid"><div><h4 style="margin: 0 0 6px 0;">أكثر الجذور ورودًا في السورة</h4><div class="gs-scroll" style="max-height: 420px;"><table class="gs-table">' +
+                 '<tr><th>الجذر</th><th>في السورة</th><th>من مواضع السورة</th><th>في القرآن</th></tr>' +
+                 d.top_roots.map(r => `<tr><td>${gsRootLink(r.root)}</td><td><b>${r.count}</b></td><td>${r.pct}%</td><td>${r.root_freq}</td></tr>`).join('') +
+                 '</table></div></div>';
+            h += `<div><h4 style="margin: 0 0 6px 0;">الجذور المميِّزة للسورة</h4>
+                 <p style="font-size: 12px; color: #777; margin: 0 0 6px 0; line-height: 1.6;">«المعامل» = نصيب الجذر من مواضع السورة ÷ نصيبه من مواضع القرآن كله
+                 (فـ 5 تعني أنه أكثر ورودًا فيها بخمسة أضعاف المتوقع). لا يدخل جذر ورد في السورة أقل من ${d.min_sura_root} مرات.</p>
+                 <div class="gs-scroll" style="max-height: 360px;"><table class="gs-table">
+                 <tr><th>الجذر</th><th>في السورة</th><th>في القرآن</th><th>نصيب السورة منه</th><th>المعامل</th></tr>` +
+                 (d.characteristic.length ? d.characteristic.map(r => `<tr><td>${gsRootLink(r.root)}</td><td><b>${r.count}</b></td><td>${r.root_freq}</td><td>${r.share_of_root}%</td><td><b>${r.keyness}</b></td></tr>`).join('')
+                  : '<tr><td colspan="5">لا جذور كافية.</td></tr>') +
+                 '</table></div></div></div>';
+            body.innerHTML = h;
+        } catch (e) {
+            body.textContent = 'تعذّر الاتصال بالخادم: ' + e;
+        }
+    }
+
+    // ---------------------------------------------------------------- المكي والمدني
+    function gsRenderMM() {
+        const mm = gsData.mm, a = mm.meccan, b = mm.medinan;
+        const rows = [
+            ['السور', 'suras'], ['الآيات', 'ayas'], ['الكلمات', 'words'], ['متوسط كلمات الآية', 'words_per_aya'],
+            ['الأسماء', 'nouns'], ['الأفعال', 'verbs'], ['حروف وأدوات', 'other'], ['الأفعال/الأسماء', 'verb_noun'],
+            ['نسبة الأفعال من الكلمات', 'verbs_pct', '%'], ['مواضع الجذور', 'root_positions'], ['جذور مختلفة', 'distinct_roots'],
+            ['جذور لم ترد إلا فيه', 'exclusive_roots'],
+        ];
+        let t = '<tr><th style="text-align: right;">المؤشر</th><th style="color: #27AE60;">المكي</th><th style="color: #2980B9;">المدني</th></tr>';
+        rows.forEach(r => { t += `<tr><td style="text-align: right;">${r[0]}</td><td><b>${gsNum(a[r[1]])}${r[2] || ''}</b></td><td><b>${gsNum(b[r[1]])}${r[2] || ''}</b></td></tr>`; });
+        document.getElementById('gs_mm_table').innerHTML = t;
+
+        const tbl = (title, color, head, list, cells) => `<h4 style="margin: 0 0 6px 0; color: ${color};">${title}</h4>
+            <div class="gs-scroll" style="max-height: 420px;"><table class="gs-table"><tr>${head.map(x => '<th>' + x + '</th>').join('')}</tr>` +
+            (list.length ? list.map(x => '<tr>' + cells(x).map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') : `<tr><td colspan="${head.length}">—</td></tr>`) +
+            '</table></div>';
+        document.getElementById('gs_top_m').innerHTML = tbl('المكي', '#27AE60', ['الجذر', 'المواضع', 'لكل ألف موضع'], mm.top_meccan, x => [gsRootLink(x.root), '<b>' + x.count + '</b>', x.per_1000]);
+        document.getElementById('gs_top_d').innerHTML = tbl('المدني', '#2980B9', ['الجذر', 'المواضع', 'لكل ألف موضع'], mm.top_medinan, x => [gsRootLink(x.root), '<b>' + x.count + '</b>', x.per_1000]);
+        document.getElementById('gs_lean_note').textContent =
+            `«الميل» = معدل ورود الجذر في المكي (لكل ألف موضع جذر) ÷ معدله في المدني، أو العكس في الجدول الثاني. فـ 4 تعني أنه أكثر ورودًا بأربعة أضعاف نسبيًا. يقتصر على الجذور التي وردت ${mm.min_root_for_leaning} مرات فأكثر.`;
+        document.getElementById('gs_lean_m').innerHTML = tbl('الأميل إلى المكي', '#27AE60', ['الجذر', 'مكي', 'مدني', 'الميل'], mm.lean_meccan, x => [gsRootLink(x.root), x.meccan, x.medinan, '<b>' + x.lean + '</b>']);
+        document.getElementById('gs_lean_d').innerHTML = tbl('الأميل إلى المدني', '#2980B9', ['الجذر', 'مكي', 'مدني', 'الميل'], mm.lean_medinan, x => [gsRootLink(x.root), x.meccan, x.medinan, '<b>' + gsNum(x.lean_inv) + '</b>']);
+        document.getElementById('gs_excl_m').innerHTML = tbl(`في المكي وحده (${a.exclusive_roots} جذرًا، أكثرها ورودًا)`, '#27AE60', ['الجذر', 'المواضع'], mm.excl_meccan, x => [gsRootLink(x.root), '<b>' + x.count + '</b>']);
+        document.getElementById('gs_excl_d').innerHTML = tbl(`في المدني وحده (${b.exclusive_roots} جذرًا، أكثرها ورودًا)`, '#2980B9', ['الجذر', 'المواضع'], mm.excl_medinan, x => [gsRootLink(x.root), '<b>' + x.count + '</b>']);
+    }
+
+    // ---------------------------------------------------------------- التصدير والنسخ
+    function gsExport() { window.location.href = '/api/general_stats_export'; }
+
+    function gsCopy() {
+        if (!gsData) return;
+        const L = [], o = gsData.overview, sp = gsSp;
+        L.push('الباحث في القرآن الكريم — الإحصاء العام');
+        L.push(`السور ${o.suras} | الآيات ${o.ayas} | الكلمات ${o.words} | الأسماء ${o.nouns} | الأفعال ${o.verbs} | حروف وأدوات ${o.other} | مواضع الجذور ${o.root_positions} | جذور مختلفة ${o.distinct_roots}`);
+        L.push('');
+        if (gsSection === 'roots') {
+            const list = gsFilteredRoots().slice(0, gsRootsAll ? undefined : 200);
+            L.push('ترتيب الجذور (الترتيب، الجذر، المواضع، الآيات، السور، مكي، مدني، الصيغ):');
+            list.forEach(x => L.push([x.rank, sp(x.root), x.count, x.ayahs, x.suras, x.meccan, x.medinan, x.lemmas].join('\t')));
+        } else if (gsSection === 'suras') {
+            if (gsSura) {
+                const d = gsSura;
+                L.push(`سورة ${d.name} (${d.id}) — ${d.type}، ترتيب النزول ${gsNum(d.rev)}`);
+                L.push(`الآيات ${d.ayas} | الكلمات ${d.words} | الأسماء ${d.nouns} | الأفعال ${d.verbs} | حروف وأدوات ${d.other} | الأفعال/الأسماء ${gsNum(d.verb_noun)}`);
+                L.push('أكثر الجذور ورودًا: ' + d.top_roots.map(r => sp(r.root) + ' ' + r.count).join('، '));
+                if (d.characteristic.length) L.push('الجذور المميِّزة: ' + d.characteristic.map(r => sp(r.root) + ' (' + r.keyness + ')').join('، '));
+            } else {
+                L.push(gsSuraCols.map(c => c[1]).join('\t'));
+                gsData.suras.forEach(x => L.push(gsSuraCols.map(c => gsNum(x[c[0]])).join('\t')));
+            }
+        } else {
+            const mm = gsData.mm;
+            L.push('المؤشر\tالمكي\tالمدني');
+            [['السور', 'suras'], ['الآيات', 'ayas'], ['الكلمات', 'words'], ['الأسماء', 'nouns'], ['الأفعال', 'verbs'],
+             ['الأفعال/الأسماء', 'verb_noun'], ['جذور مختلفة', 'distinct_roots'], ['جذور خاصة به', 'exclusive_roots']]
+                .forEach(r => L.push(`${r[0]}\t${gsNum(mm.meccan[r[1]])}\t${gsNum(mm.medinan[r[1]])}`));
+            L.push('', 'الأميل إلى المكي: ' + mm.lean_meccan.map(x => sp(x.root) + ' ' + x.lean).join('، '));
+            L.push('الأميل إلى المدني: ' + mm.lean_medinan.map(x => sp(x.root) + ' ' + gsNum(x.lean_inv)).join('، '));
+        }
+        navigator.clipboard.writeText(L.join('\n')).then(() => {
+            const b = document.getElementById('gs_copy'), old = b.textContent;
+            b.textContent = 'تم النسخ ✔';
+            setTimeout(() => { b.textContent = old; }, 2000);
+        }).catch(() => alert('تعذّر النسخ إلى الحافظة.'));
+    }
+
+    // التهيئة فورًا (الواجهة تُحقن بعد تحميل الصفحة، فلا يُنتظر DOMContentLoaded)
+    (function () { gsShow('roots'); gsLoad(); })();
+</script>

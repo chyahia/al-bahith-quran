@@ -18,6 +18,8 @@ from root_count_check import run_root_count_comparison, export_root_count_excel
 from root_tag_check import run_root_tag_check, export_root_tag_excel
 from cross_morphology_check import run_cross_morphology, export_cross_morphology_excel
 from word_kind_check import run_word_kind_check, export_word_kind_excel
+from root_profile import build_root_profile, root_profile_ayahs, create_root_profile_docx, root_pair_stats
+from general_stats import public_stats, sura_profile, export_general_stats_excel
 
 
 def resource_path(relative_path):
@@ -273,6 +275,108 @@ def tab_grammar():
     suras = [dict(row) for row in cur.fetchall()]
     conn.close()
     return render_template('grammar.html', suras=suras)
+
+@app.route('/tab/root_profile')
+def tab_root_profile():
+    return render_template('root_profile.html')
+
+
+@app.route('/api/root_profile', methods=['POST'])
+def api_root_profile():
+    """ملف الجذر (القسم 20 من السجل). قراءة فقط."""
+    try:
+        data = request.get_json() or {}
+        root = str(data.get('root', '')).strip()
+        window = max(1, min(5, int(data.get('window', 3))))
+        conn = get_db_connection()
+        names = {r['id']: r['name'] for r in conn.execute("SELECT id, name FROM suras")}
+        conn.close()
+        result = build_root_profile(root, window=window, rev_order=REV_ORDER_MAP, sura_names=names)
+        if result.get('total'):
+            suras_list = result.pop('positions_suras')
+            result['distribution'] = calculate_distribution([{'sura_id': s} for s in suras_list])
+        return jsonify(result)
+    except Exception as e:
+        print(f"Root Profile Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/root_profile_pair', methods=['POST'])
+def api_root_profile_pair():
+    try:
+        data = request.get_json() or {}
+        window = max(1, min(5, int(data.get('window', 3))))
+        return jsonify(root_pair_stats(data.get('root1', ''), data.get('root2', ''), window))
+    except Exception as e:
+        print(f"Root Pair Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/root_profile_ayahs', methods=['POST'])
+def api_root_profile_ayahs():
+    try:
+        positions = (request.get_json() or {}).get('positions', [])[:3000]
+        return jsonify(root_profile_ayahs(positions))
+    except Exception as e:
+        print(f"Root Profile Ayahs Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/root_profile_word', methods=['POST'])
+def api_root_profile_word():
+    try:
+        data = request.get_json() or {}
+        stream = create_root_profile_docx(data.get('profile', {}), data.get('chart'),
+                                          data.get('profile2'), data.get('pair'))
+        root = str(data.get('profile', {}).get('root', 'root'))
+        return send_file(stream, as_attachment=True, download_name=f'ملف_الجذر_{root}.docx',
+                         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    except Exception as e:
+        print(f"Root Profile Word Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/tab/general_stats')
+def tab_general_stats():
+    return render_template('general_stats.html')
+
+
+@app.route('/api/general_stats', methods=['GET'])
+def api_general_stats():
+    """«الإحصاء العام» (القسم 21 من السجل). قراءة فقط؛ يُحسب مرة ويُحفظ، و?refresh=1 يعيد الحساب."""
+    try:
+        return jsonify(public_stats(REV_ORDER_MAP, refresh=request.args.get('refresh') == '1'))
+    except Exception as e:
+        print(f"General Stats Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/general_stats_sura', methods=['GET'])
+def api_general_stats_sura():
+    try:
+        return jsonify(sura_profile(request.args.get('id', 1), REV_ORDER_MAP))
+    except Exception as e:
+        print(f"General Stats Sura Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/general_stats_export', methods=['GET'])
+def api_general_stats_export():
+    try:
+        wb = export_general_stats_excel(REV_ORDER_MAP)
+        file_stream = io.BytesIO()
+        wb.save(file_stream)
+        file_stream.seek(0)
+        return send_file(
+            file_stream,
+            as_attachment=True,
+            download_name='الإحصاء_العام.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+    except Exception as e:
+        print(f"General Stats Export Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/tab/consistency')
 def tab_consistency():
@@ -717,6 +821,13 @@ def search():
     
     valid_rows = []
     total_occurrences = 0
+    sura_stats = {}   # «أكثر السور ورودًا»: سورة -> {المواضع، الآيات}
+
+    def add_sura(row, n):
+        st = sura_stats.setdefault(row['sura_id'], {'sura_id': row['sura_id'], 'name': row['sura_name'],
+                                                    'occurrences': 0, 'ayahs': 0})
+        st['occurrences'] += n
+        st['ayahs'] += 1
     root_highlights = {}
     
     root_cache_dict = {}
@@ -771,6 +882,7 @@ def search():
             if valid_indices:
                 valid_rows.append(row)
                 total_occurrences += len(valid_indices)
+                add_sura(row, len(valid_indices))
                 root_highlights[f"{s_id}_{a_num}"] = valid_indices
         else:
             aya_occurrences = 0
@@ -791,6 +903,7 @@ def search():
             if aya_occurrences > 0:
                 valid_rows.append(row)
                 total_occurrences += aya_occurrences
+                add_sura(row, aya_occurrences)
 
     results = [{
         'id': r['id'], 'sura_id': r['sura_id'], 'sura_name': r['sura_name'], 'aya_num': r['aya_num'],
@@ -813,7 +926,8 @@ def search():
         'chart': chart_data,
         'collocations': collocations_data,
         'root_highlights': root_highlights,
-        'grammar_dashboard': grammar_chart_data
+        'grammar_dashboard': grammar_chart_data,
+        'top_suras': sorted(sura_stats.values(), key=lambda x: (-x['occurrences'], -x['ayahs'], x['sura_id']))
     })
 
 @app.route('/export/word', methods=['POST'])
