@@ -20,6 +20,8 @@ from cross_morphology_check import run_cross_morphology, export_cross_morphology
 from word_kind_check import run_word_kind_check, export_word_kind_excel
 from root_profile import build_root_profile, root_profile_ayahs, create_root_profile_docx, root_pair_stats
 from general_stats import public_stats, sura_profile, export_general_stats_excel
+from balagha import balagha_meta, search_balagha, aya_details, outside_list, create_balagha_docx
+import distribution
 
 
 def resource_path(relative_path):
@@ -230,23 +232,10 @@ def get_db_connection():
     return conn
 
 def calculate_distribution(results):
-    mushaf_bins = [(1, 11, "الفاتحة-هود"), (12, 22, "يوسف-الحج"), (23, 34, "المؤمنون-سبأ"), (35, 45, "فاطر-الجاثية"), (46, 57, "الأحقاف-الحديد"), (58, 68, "المجادلة-القلم"), (69, 79, "الحاقة-النازعات"), (80, 91, "عبس-الشمس"), (92, 102, "الليل-التكاثر"), (103, 114, "العصر-الناس")]
-    rev_bins = [(1, 11, "العلق-الضحى"), (12, 22, "الشرح-الإخلاص"), (23, 34, "النجم-ق"), (35, 45, "البلد-طه"), (46, 57, "الواقعة-لقمان"), (58, 68, "سبأ-الغاشية"), (69, 79, "الكهف-المعارج"), (80, 91, "النبأ-الممتحنة"), (92, 102, "النساء-النور"), (103, 114, "الحج-النصر")]
-    mushaf_counts = [0] * 10
-    rev_counts = [0] * 10
-
-    for row in results:
-        s_id = row['sura_id']
-        for i, (start, end, _) in enumerate(mushaf_bins):
-            if start <= s_id <= end: mushaf_counts[i] += 1; break
-        r_id = REV_ORDER_MAP.get(s_id, 1)
-        for i, (start, end, _) in enumerate(rev_bins):
-            if start <= r_id <= end: rev_counts[i] += 1; break
-
-    return {
-        'mushaf': {'labels': [b[2] for b in mushaf_bins], 'counts': mushaf_counts},
-        'revelation': {'labels': [b[2] for b in rev_bins], 'counts': rev_counts}
-    }
+    """التوزيع على الأجزاء والقطاعات (distribution.py، القسم 25 من سجل التطوير).
+    لكل محور: counts (الآيات)، وocc (المواضع: occ الصف، أو 1)، وtotals (آيات القسم)، وlabels.
+    الأجزاء تحتاج aya_num في الصف."""
+    return distribution.calculate_distribution(results, REV_ORDER_MAP)
 
 # ---------------- مسارات العرض الأساسية (المعمارية الجديدة) ---------------- #
 
@@ -293,8 +282,10 @@ def api_root_profile():
         conn.close()
         result = build_root_profile(root, window=window, rev_order=REV_ORDER_MAP, sura_names=names)
         if result.get('total'):
-            suras_list = result.pop('positions_suras')
-            result['distribution'] = calculate_distribution([{'sura_id': s} for s in suras_list])
+            result.pop('positions_suras', None)
+            # التوزيع على الأجزاء والقطاعات من مواضع الجذر (سورة، آية): occ المواضع، counts الآيات
+            result['distribution'] = distribution.positions_distribution(
+                [(p[0], p[1]) for l in result['lemmas'] for p in l['positions']], REV_ORDER_MAP)
         return jsonify(result)
     except Exception as e:
         print(f"Root Profile Error: {e}")
@@ -327,7 +318,7 @@ def api_root_profile_word():
     try:
         data = request.get_json() or {}
         stream = create_root_profile_docx(data.get('profile', {}), data.get('chart'),
-                                          data.get('profile2'), data.get('pair'))
+                                          data.get('profile2'), data.get('pair'), data.get('charts'))
         root = str(data.get('profile', {}).get('root', 'root'))
         return send_file(stream, as_attachment=True, download_name=f'ملف_الجذر_{root}.docx',
                          mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
@@ -378,6 +369,61 @@ def api_general_stats_export():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/tab/balagha')
+def tab_balagha():
+    return render_template('balagha.html')
+
+
+@app.route('/api/balagha_meta', methods=['GET'])
+def api_balagha_meta():
+    """«البحث البلاغي» (القسم 22 من السجل). قراءة فقط من balagha.db."""
+    try:
+        return jsonify(balagha_meta(REV_ORDER_MAP))
+    except Exception as e:
+        print(f"Balagha Meta Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/balagha_search', methods=['POST'])
+def api_balagha_search():
+    try:
+        return jsonify(search_balagha(request.get_json() or {}, REV_ORDER_MAP))
+    except Exception as e:
+        print(f"Balagha Search Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/balagha_aya', methods=['GET'])
+def api_balagha_aya():
+    try:
+        return jsonify(aya_details(request.args.get('sura'), request.args.get('aya')))
+    except Exception as e:
+        print(f"Balagha Aya Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/balagha_outside', methods=['POST'])
+def api_balagha_outside():
+    """مواضع «خارج العدّ»: تأويل بلا مصطلح، وصف بلا مصطلح، نفي المجاز وردّ التأويل."""
+    try:
+        return jsonify(outside_list(request.get_json() or {}, REV_ORDER_MAP))
+    except Exception as e:
+        print(f"Balagha Outside Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/balagha_word', methods=['POST'])
+def api_balagha_word():
+    try:
+        data = request.get_json() or {}
+        stream = create_balagha_docx(data.get('filters', data), REV_ORDER_MAP, data.get('charts'))
+        return send_file(stream, as_attachment=True, download_name='البحث_البلاغي.docx',
+                         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    except Exception as e:
+        print(f"Balagha Word Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/tab/consistency')
 def tab_consistency():
     """مسار داخلي (AJAX) لجلب واجهة فحص التماسك الداخلي فقط"""
@@ -399,8 +445,9 @@ def api_grammar_search():
         for row in data['results']:
             row['sura_id'] = row['sura_no']
             
-        # حساب التوزيع البياني (حسب المصحف والنزول)
-        chart_data = calculate_distribution(data['results'])
+        # التوزيع على الأجزاء والقطاعات: كل نتيجة موضع؛ counts = الآيات المختلفة، occ = المواضع
+        chart_data = distribution.positions_distribution(
+            [(r['sura_no'], r['verse_no']) for r in data['results']], REV_ORDER_MAP)
         data['chart'] = chart_data
         
         return jsonify(data)
@@ -688,9 +735,9 @@ def get_grammar_stats(rows, match_type, clean_root=None, root_highlights=None):
             continue
         kind, label = result
         if kind == 'noun':
-            categories['nouns'].append((label, s_id))
+            categories['nouns'].append((label, s_id, a_num))
         else:
-            categories['verbs'].append((label, s_id))
+            categories['verbs'].append((label, s_id, a_num))
 
 
     def process_cat(cat_list):
@@ -714,9 +761,12 @@ def get_grammar_stats(rows, match_type, clean_root=None, root_highlights=None):
                     
             details.append({
                 'name': gr, 'count': count, 'percent': round((count/total)*100, 1) if total>0 else 0, 
-                'dist_mushaf': dist_mushaf, 'dist_revelation': dist_rev
+                'dist_mushaf': dist_mushaf, 'dist_revelation': dist_rev,
+                # المحاور الثلاثة بالمواضع (occ) والآيات (counts)، كالرسم الرئيس
+                'dist': distribution.positions_distribution([(x[1], x[2]) for x in cat_list if x[0] == gr], REV_ORDER_MAP)
             })
-        return {'total': total, 'details': details}
+        return {'total': total, 'details': details,
+                'dist': distribution.positions_distribution([(x[1], x[2]) for x in cat_list], REV_ORDER_MAP)}
 
     return {'nouns': process_cat(categories['nouns']), 'verbs': process_cat(categories['verbs'])}
 
@@ -881,6 +931,7 @@ def search():
             
             if valid_indices:
                 valid_rows.append(row)
+                row['_occ'] = len(valid_indices)
                 total_occurrences += len(valid_indices)
                 add_sura(row, len(valid_indices))
                 root_highlights[f"{s_id}_{a_num}"] = valid_indices
@@ -902,6 +953,7 @@ def search():
             
             if aya_occurrences > 0:
                 valid_rows.append(row)
+                row['_occ'] = aya_occurrences
                 total_occurrences += aya_occurrences
                 add_sura(row, aya_occurrences)
 
@@ -915,7 +967,8 @@ def search():
     
     # تحديث استدعاء الكلمات المصاحبة بالمتغير الجديد
     collocations_data = get_collocations(valid_rows, query, match_type, multi_word_logic, context_window, total_occurrences, target_col, ngram_size, ex_words_data)
-    chart_data = calculate_distribution(results)
+    chart_data = calculate_distribution([{'sura_id': r['sura_id'], 'aya_num': r['aya_num'], 'occ': r.get('_occ', 1)}
+                                         for r in valid_rows])
     
     conn.close()
 
@@ -942,6 +995,8 @@ def export_word():
         stats_data2=data.get('stats_data2', None),
         chart_image_mushaf=data.get('chart_image_mushaf', None),
         chart_image_rev=data.get('chart_image_rev', None),
+        chart_image_juz=data.get('chart_image_juz', None),
+        chart_tables=data.get('chart_tables', None),
         grammar_data=data.get('grammar_data', None),
         collocations=data.get('collocations', None),
         notes=data.get('notes', {})

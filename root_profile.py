@@ -201,7 +201,9 @@ def root_pair_stats(root1, root2, window=3):
 # ---------------------------------------------------------------------------
 # تصدير ملف الجذر (أو مقارنة جذرين) إلى Word (RTL، بطريقة export.py)
 # ---------------------------------------------------------------------------
-def create_root_profile_docx(d, chart_b64=None, d2=None, pair=None):
+def create_root_profile_docx(d, chart_b64=None, d2=None, pair=None, charts=None):
+    """charts (اختياري): {'juz'|'mushaf'|'revelation': {img, title, unit, headers, rows}} كما رسمها المتصفح
+    (القسم 25 من سجل التطوير)؛ وبدونه تُستعمل صورة الرسم الواحدة chart_b64 كما كان."""
     import io, base64
     from docx import Document
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -283,6 +285,18 @@ def create_root_profile_docx(d, chart_b64=None, d2=None, pair=None):
 
     spaced = lambda r: ' '.join(r)
 
+    def charts_block():
+        for kind in ('juz', 'mushaf', 'revelation'):
+            c = (charts or {}).get(kind)
+            if not c:
+                continue
+            para('التوزيع ' + c.get('title', ''), 12, True, GREEN)
+            chart(c.get('img'))
+            if c.get('unit'):
+                para('الوحدة: ' + c['unit'], 10)
+            if c.get('rows'):
+                table(c.get('headers', []), c['rows'])
+
     def profile_body(x, with_chart):
         para(f"ملف الجذر «{spaced(x['root'])}»", 16, True, GREEN)
         para(f"عدد المواضع: {x['total']}  |  عدد الآيات: {x['ayahs']}  |  عدد السور: {x['suras']}  |  "
@@ -298,7 +312,9 @@ def create_root_profile_docx(d, chart_b64=None, d2=None, pair=None):
         para(f"الأسماء ({x['nouns']['total']}) والأفعال ({x['verbs']['total']})", 14, True, GREEN)
         table(['التصنيف', 'العدد'], [[k, v] for k, v in x['nouns']['details'] + x['verbs']['details']])
         para('التوزيع', 14, True, GREEN)
-        if with_chart:
+        if with_chart and charts:
+            charts_block()
+        elif with_chart:
             chart(with_chart)
         table(['السورة', 'عدد المواضع'], [[s_['name'], s_['count']] for s_ in x['top_suras']])
         para(f"الجذور المصاحبة (نافذة {x['window']} كلمات)", 14, True, GREEN)
@@ -322,14 +338,17 @@ def create_root_profile_docx(d, chart_b64=None, d2=None, pair=None):
         if pair:
             para(f"اجتماع الجذرين: في {pair['shared_ayahs']} آية، ويقع «{spaced(d2['root'])}» في نافذة "
                  f"{pair['window']} كلمات حول {pair['near']} موضعًا من مواضع «{spaced(d['root'])}».", 12)
-        chart(chart_b64)
+        if charts:
+            charts_block()
+        else:
+            chart(chart_b64)
         doc.add_page_break()
         profile_body(d, None)
         doc.add_page_break()
         profile_body(d2, None)
     else:
         para('الباحث في القرآن الكريم', 18, True, GREEN)
-        profile_body(d, chart_b64)
+        profile_body(d, chart_b64 or bool(charts))
 
     para('المصادر: مواضع الجذور من QUL، واللمات من المدونة القرآنية (بالرسم العثماني)، '
          'وتصنيف الاسم/الفعل من MASAQ.', 9)

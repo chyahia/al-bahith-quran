@@ -158,8 +158,17 @@
         <h3>التحليل البياني للانتشار</h3>
         <div class="chart-tools">
             <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
-                <label><input type="radio" name="chart_sort" value="mushaf" onchange="updateAnalytics()" checked> حسب المصحف</label>
+                <label><input type="radio" name="chart_sort" value="juz" onchange="updateAnalytics()" checked> حسب الأجزاء</label>
+                <label><input type="radio" name="chart_sort" value="mushaf" onchange="updateAnalytics()"> حسب المصحف</label>
                 <label><input type="radio" name="chart_sort" value="revelation" onchange="updateAnalytics()"> حسب النزول</label>
+            </div>
+            <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
+                <label><input type="radio" name="chart_unit" value="occ" onchange="updateAnalytics()" checked> المواضع</label>
+                <label><input type="radio" name="chart_unit" value="ayas" onchange="updateAnalytics()"> الآيات</label>
+            </div>
+            <div class="chart-col" id="chartScaleCol" style="border-left: 1px solid var(--border); padding-left: 15px; display: none;">
+                <label><input type="radio" name="chart_scale" value="dens" onchange="updateAnalytics()" checked> لكل 100 آية</label>
+                <label><input type="radio" name="chart_scale" value="count" onchange="updateAnalytics()"> العدد</label>
             </div>
             <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
                 <label><input type="radio" name="chart_type" value="bar" onchange="updateAnalytics()" checked> أعمدة</label>
@@ -176,6 +185,7 @@
         <canvas id="myChart" style="background: var(--card); border-radius: 8px; padding: 10px;"></canvas>
     </div>
 
+    <p id="chartNoteV" style="font-size: 12px; color: var(--text-muted, #777); line-height: 1.7; margin: -10px 0 12px 0;"></p>
     <table class="stats-table" id="statsTable">
         <thead><tr><th>القطاع / القسم</th><th>عدد الآيات</th><th style="width: 40%">النسبة المئوية</th></tr></thead>
         <tbody id="statsTableBody"></tbody>
@@ -529,11 +539,53 @@
         btnLoadMore.style.display = (endIndex < globalResults.length) ? 'block' : 'none';
     }
 
+    // ===== قيم الرسم (القسم 25 من سجل التطوير) =====
+    // الأجزاء متقاربة في طول النص فيكفي فيها العدد؛ والقطاعات العشرة غير متساوية فالافتراضي فيها «لكل 100 آية».
+    // الوحدة: المواضع (occ) أو الآيات (counts). وtotals عدد آيات كل قسم.
+    function chartOpts(sortOverride) {
+        const sort = sortOverride || document.querySelector('input[name="chart_sort"]:checked').value;
+        const unit = document.querySelector('input[name="chart_unit"]:checked').value;
+        const dens = sort !== 'juz' && document.querySelector('input[name="chart_scale"]:checked').value === 'dens';
+        return { sort: sort, unit: unit, dens: dens };
+    }
+    function chartVals(d, o) {
+        // d: {counts, occ, totals} أو dist الفئة النحوية
+        if (!d) return [];
+        const base = (o.unit === 'occ' ? (d.occ || d.counts) : d.counts) || [];
+        if (!o.dens) return base.slice();
+        return base.map((v, i) => (d.totals && d.totals[i]) ? Math.round(10000 * v / d.totals[i]) / 100 : 0);
+    }
+    function chartUnitLabel(o) {
+        return (o.unit === 'occ' ? 'المواضع' : 'الآيات') + (o.dens ? ' لكل 100 آية' : '');
+    }
+    function chartSectionLabel(o, label) { return o.sort === 'juz' ? 'الجزء ' + label : label; }
+    // جدول الرسم كما يُعرض (للتصدير إلى Word)
+    function chartTable(o) {
+        const d1 = chartDataStore[o.sort], d2 = (isCompareMode && chartDataStore2) ? chartDataStore2[o.sort] : null;
+        if (!d1) return null;
+        const v1 = chartVals(d1, o), v2 = d2 ? chartVals(d2, o) : null;
+        const headers = [o.sort === 'juz' ? 'الجزء' : 'القسم'].concat(d2 ? [query1Name, query2Name] : [chartUnitLabel(o)]);
+        const rows = [];
+        d1.labels.forEach((lab, i) => {
+            if (v1[i] > 0 || (v2 && v2[i] > 0)) rows.push([chartSectionLabel(o, lab), v1[i]].concat(v2 ? [v2[i]] : []));
+        });
+        return { headers: headers, rows: rows, unit: chartUnitLabel(o),
+                 title: o.sort === 'juz' ? 'حسب الأجزاء' : (o.sort === 'mushaf' ? 'حسب ترتيب المصحف' : 'حسب ترتيب النزول') };
+    }
+
     function updateAnalytics(animate = true) {
         if(!chartDataStore || !chartDataStore.mushaf) return;
         const chartType = document.querySelector('input[name="chart_type"]:checked').value;
-        const chartSort = document.querySelector('input[name="chart_sort"]:checked').value;
+        const o = chartOpts();
+        const chartSort = o.sort;
+        document.getElementById('chartScaleCol').style.display = chartSort === 'juz' ? 'none' : '';
         const selectedData = chartDataStore[chartSort];
+        if (!selectedData) return;
+        const vals1 = chartVals(selectedData, o);
+        document.getElementById('chartNoteV').textContent =
+            (chartSort === 'juz' ? 'الأجزاء متقاربة في طول النص، فالعدد فيها يبيّن أين تكثر الكلمة وأين تقلّ عبر المصحف. '
+                                 : (o.dens ? 'القطاعات غير متساوية في عدد الآيات، فالقيم مقسومة على آيات القطاع × 100. ' : 'تنبيه: القطاعات غير متساوية في عدد الآيات، فالعدد المجرد يرفع القطاعات الطويلة. ')) +
+            'الوحدة: ' + chartUnitLabel(o) + '.';
         const ctx = document.getElementById('myChart').getContext('2d');
         const isDark = document.body.classList.contains('dark-mode');
         
@@ -557,7 +609,7 @@
 
         datasets.push({
             label: (isCompareMode && chartDataStore2) ? query1Name : 'إجمالي انتشار الكلمة', 
-            data: selectedData.counts,
+            data: vals1,
             backgroundColor: chartType === 'bar' ? barBgColors : lineBg, 
             borderColor: chartType === 'bar' ? undefined : meccanLine,
             borderWidth: chartType === 'line' ? 2.5 : 0, fill: chartType === 'line', tension: 0.35,
@@ -569,7 +621,7 @@
         if (isCompareMode && chartDataStore2) {
             const selectedData2 = chartDataStore2[chartSort];
             datasets.push({
-                label: query2Name, data: selectedData2.counts,
+                label: query2Name, data: chartVals(selectedData2, o),
                 backgroundColor: chartType === 'bar' ? (isDark ? `rgba(231, 76, 60, ${baseOpacity})` : `rgba(192, 57, 43, ${baseOpacity})`) : (isDark ? `rgba(231, 76, 60, ${baseOpacity * 0.2})` : `rgba(192, 57, 43, ${baseOpacity * 0.15})`),
                 borderColor: chartType === 'line' ? (isDark ? `rgba(255, 121, 121, ${baseOpacity})` : `rgba(192, 57, 43, ${baseOpacity})`) : undefined,
                 borderWidth: chartType === 'line' ? 2.5 : 0, fill: chartType === 'line', tension: 0.35,
@@ -579,7 +631,9 @@
 
         const gColors = isDark ? ['#3498db', '#e74c3c'] : ['#2980b9', '#c0392b']; 
         activeGrammarFilters.forEach((filter, idx) => {
-            const lineData = chartSort === 'mushaf' ? filter.data_mushaf : filter.data_revelation;
+            // الفئة النحوية: توزيعها من الخادم بالمحاور الثلاثة (dist)، وإلا القديم (مواضع، قطاعات)
+            const fd = filter.dist && filter.dist[chartSort] ? Object.assign({}, filter.dist[chartSort], { totals: selectedData.totals }) : null;
+            const lineData = fd ? chartVals(fd, o) : (chartSort === 'mushaf' ? filter.data_mushaf : filter.data_revelation);
             datasets.push({
                 label: filter.label, data: lineData,
                 type: 'line', borderColor: gColors[idx % 2], backgroundColor: gColors[idx % 2],
@@ -595,7 +649,8 @@
                 layout: { padding: { right: 35, left: 20 } },
                 scales: { 
                     x: { reverse: true, grid: { color: isDark ? '#333' : '#eee' }, ticks: { font: { family: 'Tajawal' } } }, 
-                    y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Tajawal' } }, grid: { color: isDark ? '#333' : '#eee' } } 
+                    y: { beginAtZero: true, title: { display: true, text: chartUnitLabel(o), font: { family: 'Tajawal' }, color: isDark ? '#e0e0e0' : '#555' },
+                         ticks: { stepSize: o.dens ? undefined : 1, font: { family: 'Tajawal' } }, grid: { color: isDark ? '#333' : '#eee' } } 
                 }, plugins: { legend: { display: true, labels: { font: { family: 'Tajawal', size: 14 }, color: isDark ? '#e0e0e0' : '#333' } } } 
             }
         });
@@ -604,20 +659,23 @@
         tbody.innerHTML = '';
         if (isCompareMode && chartDataStore2) {
             const selectedData2 = chartDataStore2[chartSort];
-            document.querySelector('#statsTable thead tr').innerHTML = `<th>القطاع / القسم</th><th style="background-color: var(--accent); color: white; border-color: var(--accent);">${query1Name}</th><th style="background-color: #c0392b; color: white; border-color: #c0392b;">${query2Name}</th>`;
+            const vals2 = chartVals(selectedData2, o);
+            document.querySelector('#statsTable thead tr').innerHTML = `<th>${chartSort === 'juz' ? 'الجزء' : 'القطاع / القسم'}</th><th style="background-color: var(--accent); color: white; border-color: var(--accent);">${query1Name}</th><th style="background-color: #c0392b; color: white; border-color: #c0392b;">${query2Name}</th>`;
             selectedData.labels.forEach((label, i) => {
-                if(selectedData.counts[i] > 0 || selectedData2.counts[i] > 0) { 
-                    tbody.innerHTML += `<tr><td><strong>${label}</strong></td><td style="color: var(--accent); font-weight: bold; font-size: 18px;">${selectedData.counts[i]}</td><td style="color: #c0392b; font-weight: bold; font-size: 18px;">${selectedData2.counts[i]}</td></tr>`;
+                if(vals1[i] > 0 || vals2[i] > 0) { 
+                    tbody.innerHTML += `<tr><td><strong>${chartSectionLabel(o, label)}</strong></td><td style="color: var(--accent); font-weight: bold; font-size: 18px;">${vals1[i]}</td><td style="color: #c0392b; font-weight: bold; font-size: 18px;">${vals2[i]}</td></tr>`;
                 }
             });
         } else {
-            let total = selectedData.counts.reduce((a, b) => a + b, 0);
-            document.querySelector('#statsTable thead tr').innerHTML = `<th>القطاع / القسم</th><th>عدد الآيات</th><th style="width: 40%">النسبة المئوية</th>`;
+            // النسبة المئوية: نصيب القسم من المجموع (بالعدد، لا بالكثافة)
+            const raw = chartVals(selectedData, Object.assign({}, o, { dens: false }));
+            let total = raw.reduce((a, b) => a + b, 0);
+            document.querySelector('#statsTable thead tr').innerHTML = `<th>${chartSort === 'juz' ? 'الجزء' : 'القطاع / القسم'}</th><th>${chartUnitLabel(o)}</th><th style="width: 40%">النسبة من المجموع</th>`;
             selectedData.labels.forEach((label, i) => {
-                let count = selectedData.counts[i];
+                let count = vals1[i];
                 if(count > 0) { 
-                    let percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
-                    tbody.innerHTML += `<tr><td><strong>${label}</strong></td><td>${count}</td><td><div style="display:flex; align-items:center; gap:10px; justify-content:center;"><span style="width:40px; font-weight:bold;">${percent}%</span><div class="progress-bar-bg" style="width:60%;"><div class="progress-bar-fill" style="width:${percent}%;"></div></div></div></td></tr>`;
+                    let percent = total > 0 ? ((raw[i] / total) * 100).toFixed(1) : 0;
+                    tbody.innerHTML += `<tr><td><strong>${chartSectionLabel(o, label)}</strong></td><td>${count}</td><td><div style="display:flex; align-items:center; gap:10px; justify-content:center;"><span style="width:40px; font-weight:bold;">${percent}%</span><div class="progress-bar-bg" style="width:60%;"><div class="progress-bar-fill" style="width:${percent}%;"></div></div></div></td></tr>`;
                 }
             });
         }
@@ -636,29 +694,12 @@
 
     function downloadTableCSV() {
         if(!chartDataStore || !chartDataStore.mushaf) return;
-        const chartSort = document.querySelector('input[name="chart_sort"]:checked').value;
-        const selectedData = chartDataStore[chartSort];
-        let csvContent = '\uFEFF'; 
-        
-        if (isCompareMode && chartDataStore2) {
-            const selectedData2 = chartDataStore2[chartSort];
-            csvContent += `القسم,"${query1Name}","${query2Name}"\n`;
-            selectedData.labels.forEach((label, i) => {
-                if(selectedData.counts[i] > 0 || selectedData2.counts[i] > 0) {
-                    csvContent += `"${label}",${selectedData.counts[i]},${selectedData2.counts[i]}\n`;
-                }
-            });
-        } else {
-            let total = selectedData.counts.reduce((a, b) => a + b, 0);
-            csvContent += "القسم,عدد الآيات,النسبة المئوية\n";
-            selectedData.labels.forEach((label, i) => {
-                let count = selectedData.counts[i];
-                if(count > 0) {
-                    let percent = total > 0 ? ((count / total) * 100).toFixed(1) + "%" : "0%";
-                    csvContent += `"${label}",${count},"${percent}"\n`;
-                }
-            });
-        }
+        const o = chartOpts();
+        const t = chartTable(o);
+        if (!t) return;
+        let csvContent = '\uFEFF';
+        csvContent += t.headers.map(h => `"${h}"`).join(',') + '\n';
+        t.rows.forEach(r => { csvContent += r.map((v, i) => i === 0 ? `"${v}"` : v).join(',') + '\n'; });
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = isCompareMode ? `مقارنة_${query1Name}_و_${query2Name}.csv` : `إحصائيات_البحث.csv`; link.click();
@@ -781,14 +822,14 @@
         btnWord.innerHTML = 'جاري التصدير ⏳...'; btnWord.disabled = true;
         const finalResults = globalResults.filter(item => !excludedIds.includes(item.id)); 
         const originalSort = document.querySelector('input[name="chart_sort"]:checked').value;
-
-        document.querySelector('input[name="chart_sort"][value="mushaf"]').checked = true;
-        updateAnalytics(false); 
-        const chartImageMushaf = document.getElementById('myChart').toDataURL('image/png'); 
-        
-        document.querySelector('input[name="chart_sort"][value="revelation"]').checked = true;
-        updateAnalytics(false);
-        const chartImageRev = document.getElementById('myChart').toDataURL('image/png'); 
+        const images = {}, tables = {};
+        ['juz', 'mushaf', 'revelation'].forEach(k => {
+            document.querySelector(`input[name="chart_sort"][value="${k}"]`).checked = true;
+            updateAnalytics(false);
+            images[k] = document.getElementById('myChart').toDataURL('image/png');
+            tables[k] = chartTable(chartOpts(k));
+        });
+        const chartImageMushaf = images.mushaf, chartImageRev = images.revelation;
 
         document.querySelector(`input[name="chart_sort"][value="${originalSort}"]`).checked = true;
         updateAnalytics(true);
@@ -798,6 +839,7 @@
             display_type: document.querySelector('input[name="display_type"]:checked').value, 
             stats_data: chartDataStore, stats_data2: isCompareMode ? chartDataStore2 : null,
             chart_image_mushaf: chartImageMushaf, chart_image_rev: chartImageRev,
+            chart_image_juz: images.juz, chart_tables: tables,
             grammar_data: currentGrammarData, collocations: currentCollocations, notes: ayahNotes
         };
 
@@ -833,15 +875,17 @@
             const cat = currentGrammarData[catKey]; labelStr = `مجموع ` + (catKey === 'nouns' ? 'الأسماء' : 'الأفعال');
             distMushaf = [0,0,0,0,0,0,0,0,0,0]; distRev = [0,0,0,0,0,0,0,0,0,0];
             cat.details.forEach(d => { for(let i=0; i<10; i++) { distMushaf[i] += d.dist_mushaf[i]; distRev[i] += d.dist_revelation[i]; } });
+            var distAll = cat.dist;
         } else {
             item = currentGrammarData[catKey].details[index]; labelStr = item.name; distMushaf = item.dist_mushaf; distRev = item.dist_revelation;
+            var distAll = item.dist;
         }
         
         const existingIdx = activeGrammarFilters.findIndex(f => f.label === labelStr);
         if (existingIdx > -1) { activeGrammarFilters.splice(existingIdx, 1); btnElement.style.border = ''; } 
         else {
             if (activeGrammarFilters.length >= 2) { activeGrammarFilters.shift(); }
-            activeGrammarFilters.push({label: labelStr, data_mushaf: distMushaf, data_revelation: distRev, element: btnElement});
+            activeGrammarFilters.push({label: labelStr, data_mushaf: distMushaf, data_revelation: distRev, dist: distAll, element: btnElement});
         }
         
         document.querySelectorAll('.grammar-item-btn, .grammar-total-btn').forEach(b => {

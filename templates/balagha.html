@@ -1,0 +1,596 @@
+<!-- ================= تبويب «البحث البلاغي» (القسم 22 من سجل تطوير البرنامج) ================= -->
+<div class="card" style="padding: 20px;">
+    <h2 style="color: var(--primary); margin-bottom: 8px;">البحث البلاغي</h2>
+    <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+        الصور البيانية (التشبيه، والمجاز المرسل، والمجاز العقلي، والاستعارة، والكناية) كما حدّدها المفسّرون:
+        <span id="bl_books"></span>
+        <br><span style="display: inline-block; margin-top: 4px; padding: 4px 10px; border-right: 3px solid #E65100; background: rgba(230, 81, 0, 0.06); font-size: 13px;">
+        <b>تنبيه:</b> صور كل مفسّر مقصورة على ما سمّاه صراحةً أو حلّله تحليلًا يبيّن وجه الصورة؛ فما لم يذكره من صور القرآن لا يظهر عنده،
+        وغيابه لا يعني أنه ينفيه. ولرصد صورة في القرآن كله يُستحسن اختيار «أيٌّ منهم» والخط الشامل في الرسم.</span>
+        <br><span id="bl_info" style="font-size: 12px;"></span>
+    </p>
+
+    <div class="bl-grid">
+        <label>الصورة
+            <select id="bl_type">
+                <option value="تشبيه">تشبيه</option>
+                <option value="مجاز مرسل">مجاز مرسل</option>
+                <option value="مجاز عقلي">مجاز عقلي</option>
+                <option value="استعارة">استعارة</option>
+                <option value="كناية">كناية</option>
+                <option value="مجاز (غير محدد)">مجاز غير محدد</option>
+                <option value="ALL_MAJAZ">كل المجازات (مرسل + عقلي + استعارة + غير محدد)</option>
+                <option value="ALL">كل الصور</option>
+            </select>
+        </label>
+        <label>المصدر
+            <select id="bl_source" onchange="blCompat()"></select>
+        </label>
+        <label>السورة
+            <select id="bl_sura"><option value="all">كل السور</option></select>
+        </label>
+        <label>المكي والمدني
+            <select id="bl_period">
+                <option value="all">الكل</option>
+                <option value="meccan">المكي</option>
+                <option value="medinan">المدني</option>
+            </select>
+        </label>
+        <label>الوظيفة الحجاجية
+            <select id="bl_function"><option value="all">الكل</option></select>
+        </label>
+        <label>اعتراض ابن المنيّر (الكشاف)
+            <select id="bl_ibn"><option value="all">الكل</option></select>
+        </label>
+        <label>الموقف من الكشاف (ابن عاشور)
+            <select id="bl_stance"><option value="all">الكل</option></select>
+        </label>
+        <label>بحث في اللفظ وعبارة المفسّر
+            <input id="bl_text" type="text" dir="rtl" placeholder="اختياري" onkeydown="if(event.key==='Enter') blSearch();">
+        </label>
+        <label style="justify-content: flex-end;">
+            <span><input id="bl_ihtimal" type="checkbox"> إظهار الاحتمالات (غير معدودة في الملفات)</span>
+        </label>
+    </div>
+    <p id="bl_mode_note" style="font-size: 12px; color: #777; margin: 6px 0 0 0; line-height: 1.7;"></p>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+        <button class="btn-icon" style="background: var(--primary);" onclick="blSearch()">بحث 🔎</button>
+        <button id="bl_word" class="btn-icon" style="background: #0D47A1; display: none;" onclick="blWord()">تصدير Word 📄</button>
+        <button id="bl_copy" class="btn-icon" style="background: #E67E22; display: none;" onclick="blCopy()">نسخ النتائج 📋</button>
+        <span style="flex: 1;"></span>
+        <button class="btn-icon" style="background: #455A64;" onclick="blOutside()">مواضع خارج العدّ</button>
+    </div>
+</div>
+
+<div id="bl_loader" style="display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--primary);">جاري البحث... ⏳</div>
+
+<div id="bl_body" style="display: none;">
+    <div class="card" style="padding: 16px 20px; margin-top: 15px;">
+        <div id="bl_summary" style="font-weight: bold; line-height: 1.9;"></div>
+    </div>
+    <div id="bl_scrollbox" class="bl-scroll bl-results-box">
+        <div id="bl_results"></div>
+        <div style="text-align: center; margin: 10px 0;">
+            <button id="bl_more" class="btn-icon" style="background: #455A64; display: none;" onclick="blRenderMore()"></button>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">التوزيع</h3>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+            <button id="bl_k_juz" class="btn-icon" style="background: var(--primary);" onclick="blChartKind='juz'; blDrawChart();">الأجزاء</button>
+            <button id="bl_k_mushaf" class="btn-icon" style="background: var(--primary);" onclick="blChartKind='mushaf'; blDrawChart();">ترتيب المصحف</button>
+            <button id="bl_k_rev" class="btn-icon" style="background: var(--primary);" onclick="blChartKind='rev'; blDrawChart();">ترتيب النزول</button>
+            <span style="width: 16px;"></span>
+            <button id="bl_t_bar" class="btn-icon" style="background: #455A64;" onclick="blChartType='bar'; blDrawChart();">أعمدة 📊</button>
+            <button id="bl_t_line" class="btn-icon" style="background: #455A64;" onclick="blChartType='line'; blDrawChart();">خطي 📈</button>
+            <span style="width: 16px;"></span>
+            <span id="bl_scale_box"><button id="bl_s_count" class="btn-icon" style="background: #6D4C41;" onclick="blChartScale='count'; blDrawChart();">العدد</button>
+            <button id="bl_s_dens" class="btn-icon" style="background: #6D4C41;" onclick="blChartScale='dens'; blDrawChart();">لكل 100 آية</button></span>
+        </div>
+        <div id="bl_series_box" style="display: none; margin-bottom: 8px; font-size: 14px;">
+            <b>الخطوط:</b>
+            <label style="margin-inline-start: 10px;"><input type="radio" name="bl_series" value="per" checked onchange="blChartSeries=this.value; blDrawChart();"> خط لكل مفسّر</label>
+            <label style="margin-inline-start: 10px;"><input type="radio" name="bl_series" value="total" onchange="blChartSeries=this.value; blDrawChart();"> خط شامل</label>
+            <label style="margin-inline-start: 10px;"><input type="radio" name="bl_series" value="both" onchange="blChartSeries=this.value; blDrawChart();"> الاثنان معًا</label>
+        </div>
+        <div id="bl_restrict_box" style="display: none; margin-bottom: 8px; font-size: 14px;">
+            <label><input id="bl_restrict" type="checkbox" onchange="blDrawChart();"> حصر الرسم في ما قُرئ من <span id="bl_restrict_names"></span></label>
+        </div>
+        <div style="height: 280px;"><canvas id="bl_chart"></canvas></div>
+        <p id="bl_chart_note" style="font-size: 12px; color: #777; line-height: 1.7; margin: 6px 0 0 0;"></p>
+        <div class="bl-two" style="margin-top: 16px;">
+            <div><h4 style="margin: 0 0 6px 0;">الأنواع</h4><div class="bl-scroll" style="max-height: 360px;"><table id="bl_types" class="bl-table"></table></div></div>
+            <div><h4 style="margin: 0 0 6px 0;">أكثر السور ورودًا <button class="bl-mini-btn" onclick="blSurasAll = !blSurasAll; blRenderSuras();" id="bl_suras_btn"></button></h4>
+                 <div class="bl-scroll" style="max-height: 360px;"><table id="bl_suras" class="bl-table"></table></div></div>
+        </div>
+    </div>
+</div>
+
+<div id="bl_out_card" class="card" style="padding: 20px; margin-top: 15px; display: none;">
+    <h3 style="color: var(--primary); margin-top: 0;">مواضع خارج العدّ</h3>
+    <p style="font-size: 13px; color: #777; line-height: 1.7; margin: 0 0 8px 0;">مواضع لا تدخل في عدّ الصور: تأويل بلا مصطلح، ووصف بلا مصطلح، ونفي المجاز وردّ التأويل.
+       تُطبَّق عليها السورة والمكي والمدني والبحث النصي من الإعدادات أعلاه.</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;" class="bl-grid-inline">
+        <select id="bl_out_kind" onchange="blOutside()"><option value="all">كل الأنواع</option></select>
+        <select id="bl_out_src" onchange="blOutside()"><option value="all">كل المفسّرين</option></select>
+        <span id="bl_out_count" style="align-self: center; font-weight: bold;"></span>
+    </div>
+    <div class="bl-scroll" style="max-height: 520px;"><table id="bl_out" class="bl-table"></table></div>
+</div>
+
+<style>
+    .bl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 14px; }
+    .bl-grid label { display: flex; flex-direction: column; gap: 4px; font-weight: bold; font-size: 14px; }
+    .bl-grid select, .bl-grid input[type=text], .bl-grid-inline select { padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-family: 'Tajawal'; font-size: 15px; }
+    .bl-grid select:disabled { opacity: 0.45; }
+    .bl-aya { padding: 14px 18px; margin-top: 10px; }
+    .bl-aya-text { font-family: 'Amiri'; font-size: 21px; line-height: 2.1; }
+    .bl-ref { font-family: 'Tajawal'; font-size: 14px; color: #777; }
+    .bl-chip { display: inline-block; border-radius: 12px; padding: 1px 10px; margin: 2px; font-size: 13px; border: 1px solid; }
+    .bl-chip.ihtimal { border-style: dashed; opacity: 0.8; }
+    .bl-details-btn { color: var(--primary); cursor: pointer; font-weight: bold; text-decoration: underline; margin-inline-start: 8px; font-size: 14px; }
+    .bl-det { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 10px; }
+    .bl-row { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin: 8px 0; border-right-width: 5px; }
+    .bl-row.ihtimal { background: rgba(233, 30, 99, 0.06); }
+    .bl-row table { width: 100%; border-collapse: collapse; }
+    .bl-row td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; line-height: 1.7; }
+    .bl-row td:first-child { width: 190px; font-weight: bold; color: #555; white-space: nowrap; }
+    body.dark-mode .bl-row td:first-child { color: #bbb; }
+    .bl-row-head { font-weight: bold; margin-bottom: 4px; }
+    .bl-table { width: 100%; border-collapse: collapse; }
+    .bl-table th, .bl-table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: center; }
+    .bl-table th { position: sticky; top: -8px; background: var(--card); }
+    .bl-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+    .bl-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .bl-results-box { max-height: 720px; margin-top: 12px; }
+    .bl-results-box .bl-aya:first-child { margin-top: 0; }
+    .bl-btn-off { background: #9e9e9e !important; }
+    .bl-mini-btn { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+    .bl-cov { color: #8D6E63; font-weight: normal; font-size: 13px; }
+</style>
+
+<script>
+    var blMeta = null;
+    var blData = null;
+    var blShown = 0;
+    var blPage = 100;
+    var blChartKind = 'juz';        // juz | mushaf | rev
+    var blChartType = 'bar';
+    var blChartScale = 'dens';      // count | dens (لكل 100 آية)؛ الأجزاء بالعدد دائمًا
+    var blChartSeries = 'per';      // per | total | both
+    var blChartObj = null;
+    var blSurasAll = false;
+    var blLastFilters = null;
+    var blDetCache = {};
+
+    // لون كل مفسّر (RGB)، ومن لا لون له يأخذ من الاحتياط
+    var BL_COLORS = { saboni: '13, 71, 161', zamakhshari: '183, 28, 28', ibnashur: '46, 125, 50' };
+    var BL_SPARE = ['123, 31, 162', '230, 81, 0', '0, 131, 143'];
+    // «الرقم» ترتيب الصف في ملف Excel، لا يُعرض في التفاصيل
+    var BL_HIDDEN_FIELDS = new Set(['الرقم']);
+
+    function blEsc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : String(s); return d.innerHTML; }
+    function blRgb(k) {
+        if (!BL_COLORS[k]) { const i = blMeta ? blMeta.sources.findIndex(s => s.key === k) : 0; BL_COLORS[k] = BL_SPARE[Math.max(0, i) % BL_SPARE.length]; }
+        return BL_COLORS[k];
+    }
+    function blName(k) { const s = blMeta && blMeta.sources.find(x => x.key === k); return s ? s.name : k; }
+
+    function blFilters() {
+        return {
+            type: document.getElementById('bl_type').value,
+            source: document.getElementById('bl_source').value,
+            sura: document.getElementById('bl_sura').value,
+            period: document.getElementById('bl_period').value,
+            function: document.getElementById('bl_function').value,
+            ibn: document.getElementById('bl_ibn').value,
+            stance: document.getElementById('bl_stance').value,
+            text: document.getElementById('bl_text').value.trim(),
+            include_ihtimal: document.getElementById('bl_ihtimal').checked,
+        };
+    }
+
+    // المفسّرون الذين تُعرض صفوفهم في الخيار المختار
+    function blModeSources(mode) {
+        const keys = blMeta.sources.map(s => s.key);
+        if (mode.startsWith('one:')) return [mode.slice(4)];
+        if (mode.startsWith('all:')) return mode.slice(4).split(',');
+        if (mode.startsWith('only:')) return [mode.slice(5)];
+        return keys;
+    }
+
+    // الفلاتر الخاصة: تعمل حين يكون في المصدر مفسّر في ملفه ذلك العمود، وقائمة الوظيفة تجمع رؤوسهم
+    function blCompat() {
+        if (!blMeta) return;
+        const mode = document.getElementById('bl_source').value;
+        const srcs = blModeSources(mode);
+        [['bl_function', 'function'], ['bl_ibn', 'ibn'], ['bl_stance', 'stance']].forEach(([id, key]) => {
+            const el = document.getElementById(id), old = el.value;
+            const per = blMeta.filters[key] || {};
+            const vals = [];
+            srcs.forEach(k => (per[k] || []).forEach(v => { if (!vals.includes(v)) vals.push(v); }));
+            el.innerHTML = '<option value="all">الكل</option>' + vals.map(v => `<option value="${blEsc(v)}">${blEsc(v)}</option>`).join('');
+            el.disabled = vals.length === 0;
+            el.value = vals.includes(old) ? old : 'all';
+        });
+        const name = k => blName(k);
+        let note = '';
+        if (mode === 'any') note = 'كل آية فيها الصورة المختارة عند أيٍّ من المفسّرين.';
+        else if (mode.startsWith('all:')) note = 'الآيات التي فيها الصورة المختارة عند ' + srcs.map(name).join(' و') + ' معًا (الموازنة بالآية).';
+        else if (mode.startsWith('only:')) note = `الآيات التي فيها الصورة المختارة عند ${name(srcs[0])}، وليست فيها عند أيٍّ من الباقين (وإن ذكروا فيها نوعًا آخر).`;
+        // تنبيه النطاق المقروء
+        const involved = mode.startsWith('only:') ? blMeta.sources.map(s => s.key) : (mode.startsWith('all:') ? srcs : []);
+        const partial = blMeta.sources.filter(s => involved.includes(s.key) && s.coverage_text);
+        if (partial.length) note += (note ? ' ' : '') + 'وتُحصر في ما قُرئ من: ' + partial.map(s => `${s.name} (${s.coverage_text})`).join('؛ ') + '.';
+        document.getElementById('bl_mode_note').textContent = note;
+    }
+
+    async function blInit() {
+        try {
+            const res = await fetch('/api/balagha_meta');
+            const m = await res.json();
+            if (m.error) { document.getElementById('bl_info').innerHTML = '<b style="color:#c0392b;">' + blEsc(m.error) + '</b>'; return; }
+            blMeta = m;
+            document.getElementById('bl_books').innerHTML = m.sources.map(s =>
+                `<span style="color: rgb(${blRgb(s.key)}); font-weight: bold;">${blEsc(s.name)}</span> في «${blEsc(s.book)}»` +
+                (s.coverage_text ? ` <span class="bl-cov">(المقروء: ${blEsc(s.coverage_text)})</span>` : '')).join('، ') + '.';
+            const srcSel = document.getElementById('bl_source');
+            srcSel.innerHTML = m.modes.map(g => `<optgroup label="${blEsc(g.label)}">` +
+                g.options.map(o => `<option value="${blEsc(o.value)}">${blEsc(o.label)}</option>`).join('') + '</optgroup>').join('');
+            const z = m.sources.find(s => s.key === 'zamakhshari');
+            srcSel.value = z ? 'one:zamakhshari' : srcSel.options[0].value;
+            const sura = document.getElementById('bl_sura');
+            m.suras.forEach(s => { sura.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.id}. ${blEsc(s.name)}</option>`); });
+            const kinds = [...new Set(m.outside.map(o => o[1]))];
+            document.getElementById('bl_out_kind').insertAdjacentHTML('beforeend', kinds.map(k => `<option value="${blEsc(k)}">${blEsc(k)}</option>`).join(''));
+            document.getElementById('bl_out_src').insertAdjacentHTML('beforeend', m.sources.filter(s => m.outside.some(o => o[0] === s.key))
+                .map(s => `<option value="${s.key}">${blEsc(s.name)}</option>`).join(''));
+            const c = m.counts || {};
+            document.getElementById('bl_info').textContent =
+                'الصور المثبتة في القاعدة: ' + m.sources.map(s => `${s.name} ${c[s.key] || 0}`).join('، ') + '. ' +
+                'تُعرض «الإثباتات» وحدها ما لم تُظهر الاحتمالات. المكي: ما ترتيب نزوله 86 فما دون، كبقية التبويبات (فالرعد مدنية هنا). ' +
+                (m.built_at ? `بُنيت القاعدة: ${m.built_at.replace('T', ' ')}.` : '');
+            blCompat();
+        } catch (e) {
+            document.getElementById('bl_info').textContent = 'تعذّر الاتصال بالخادم: ' + e;
+        }
+    }
+
+    function blChip(src, type, hukm) {
+        const rgb = blRgb(src);
+        return `<span class="bl-chip${hukm !== 'إثبات' ? ' ihtimal' : ''}" style="color: rgb(${rgb}); border-color: rgb(${rgb});"` +
+               ` title="${blEsc(blName(src))}${hukm !== 'إثبات' ? ' — ' + blEsc(hukm) : ''}">${blEsc(type)}</span>`;
+    }
+
+    async function blSearch() {
+        if (!blMeta) return;
+        const f = blFilters();
+        blLastFilters = f;
+        blDetCache = {};
+        document.getElementById('bl_loader').style.display = 'block';
+        document.getElementById('bl_body').style.display = 'none';
+        try {
+            const res = await fetch('/api/balagha_search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) });
+            const d = await res.json();
+            document.getElementById('bl_loader').style.display = 'none';
+            if (d.error) { alert('خطأ: ' + d.error); return; }
+            blData = d;
+            document.getElementById('bl_body').style.display = 'block';
+            const per = d.per_source.map(([k, v]) => `${k}: ${v}`).join('، ');
+            document.getElementById('bl_summary').innerHTML =
+                `${blEsc(d.label)}<br><span style="color: var(--primary); font-size: 18px;">${d.images} صورة في ${d.ayahs} آية</span>` +
+                (per ? ` <span style="font-weight: normal;">(${blEsc(per)})</span>` : '') +
+                (d.coverage_note ? `<br><span class="bl-cov">⚠ ${blEsc(d.coverage_note)}</span>` : '') +
+                '<br><span style="font-weight: normal; font-size: 13px;">' +
+                d.shown_sources.map(k => blChip(k, blName(k), 'إثبات')).join(' ') +
+                (f.include_ihtimal ? ' ' + blChip(d.shown_sources[0], 'احتمال (إطار متقطع)', 'احتمال') : '') + '</span>';
+            const show = d.results.length > 0;
+            document.getElementById('bl_word').style.display = show ? 'inline-block' : 'none';
+            document.getElementById('bl_copy').style.display = show ? 'inline-block' : 'none';
+            document.getElementById('bl_results').innerHTML = show ? '' : '<div class="card" style="padding: 20px;">لا نتائج.</div>';
+            document.getElementById('bl_scrollbox').scrollTop = 0;
+            blShown = 0;
+            blRenderMore();
+            blRenderTypes();
+            blRenderSuras();
+            blDrawChart();
+        } catch (e) {
+            document.getElementById('bl_loader').style.display = 'none';
+            alert('تعذّر الاتصال بالخادم: ' + e);
+        }
+    }
+
+    function blRenderMore() {
+        const box = document.getElementById('bl_results');
+        const end = Math.min(blData.results.length, blShown + blPage);
+        let h = '';
+        for (let i = blShown; i < end; i++) {
+            const x = blData.results[i];
+            const rng = x.aya_to > x.aya ? `${x.aya}-${x.aya_to}` : x.aya;
+            h += `<div class="card bl-aya" id="bl_aya_${i}">
+                    <div class="bl-aya-text">${i + 1}. ﴿ ${x.texts.map(blEsc).join(' ۝ ')} ﴾ <span class="bl-ref">[${blEsc(x.sura_name)}: ${rng}]</span></div>
+                    <div>${x.chips.map(c => blChip(c[0], c[1], c[2])).join('')}<span class="bl-details-btn" onclick="blToggle(${i})">تفاصيل ▾</span></div>
+                    <div class="bl-det" id="bl_det_${i}" style="display: none;"></div>
+                  </div>`;
+        }
+        box.insertAdjacentHTML('beforeend', h);
+        blShown = end;
+        const more = document.getElementById('bl_more');
+        more.style.display = blShown < blData.results.length ? 'inline-block' : 'none';
+        more.textContent = `عرض المزيد (${blData.results.length - blShown} آية باقية)`;
+    }
+
+    function blFieldsTable(fields) {
+        return '<table>' + fields.filter(f => f[1] !== null && f[1] !== undefined && f[1] !== '' && !BL_HIDDEN_FIELDS.has(f[0]))
+            .map(f => `<tr><td>${blEsc(f[0])}</td><td>${blEsc(f[1])}</td></tr>`).join('') + '</table>';
+    }
+
+    function blRowHtml(r) {
+        const rgb = blRgb(r.source);
+        return `<div class="bl-row${r.hukm !== 'إثبات' ? ' ihtimal' : ''}" style="border-right-color: rgb(${rgb});">` +
+               `<div class="bl-row-head" style="color: rgb(${rgb});">عند ${blEsc(r.source_name)}: ${blEsc(r.main_type)}` +
+               (r.hukm !== 'إثبات' ? ` <span style="color: #AD1457;">(${blEsc(r.hukm)})</span>` : '') + '</div>' + blFieldsTable(r.fields) + '</div>';
+    }
+
+    async function blToggle(i) {
+        const det = document.getElementById('bl_det_' + i);
+        if (det.style.display === 'block') { det.style.display = 'none'; return; }
+        det.style.display = 'block';
+        const x = blData.results[i];
+        const key = x.sura + ':' + x.aya;
+        if (!blDetCache[key]) {
+            det.innerHTML = 'جاري التحميل... ⏳';
+            try {
+                const res = await fetch(`/api/balagha_aya?sura=${x.sura}&aya=${x.aya}`);
+                blDetCache[key] = await res.json();
+            } catch (e) { det.textContent = 'تعذّر الاتصال بالخادم: ' + e; return; }
+        }
+        const d = blDetCache[key];
+        if (d.error) { det.textContent = 'خطأ: ' + d.error; return; }
+        const ids = new Set(x.ids);
+        const matched = d.rows.filter(r => ids.has(r.id));
+        const others = d.rows.filter(r => !ids.has(r.id));
+        let h = matched.map(blRowHtml).join('');
+        if (others.length) {
+            h += `<details style="margin-top: 6px;"><summary style="cursor: pointer; color: #555;">باقي صور الآية عند المفسّرين (${others.length})</summary>` +
+                 others.map(blRowHtml).join('') + '</details>';
+        }
+        if (d.outside.length) {
+            h += `<details style="margin-top: 6px;"><summary style="cursor: pointer; color: #555;">مواضع خارج العدّ في الآية (${d.outside.length})</summary>` +
+                 d.outside.map(o => `<div class="bl-row" style="border-right-color: rgb(${blRgb(o.source)});">` +
+                    `<div class="bl-row-head" style="color: rgb(${blRgb(o.source)});">${blEsc(o.kind)} — ${blEsc(o.source_name)}</div>` +
+                    blFieldsTable(o.fields) + '</div>').join('') + '</details>';
+        }
+        det.innerHTML = h;
+    }
+
+    // ---------------------------------------------------------------- الإحصاء
+    function blRenderTypes() {
+        let t = '<tr><th>المصدر</th><th>النوع</th><th>الصور</th><th>النسبة</th></tr>';
+        const tot = {};
+        blData.by_type.forEach(r => { tot[r[0]] = (tot[r[0]] || 0) + r[2]; });
+        blData.by_type.forEach(r => {
+            t += `<tr><td>${blEsc(r[0])}</td><td>${blEsc(r[1])}</td><td><b>${r[2]}</b></td><td>${(100 * r[2] / tot[r[0]]).toFixed(1)}%</td></tr>`;
+        });
+        if (!blData.by_type.length) t += '<tr><td colspan="4">—</td></tr>';
+        document.getElementById('bl_types').innerHTML = t;
+    }
+
+    function blRenderSuras() {
+        const all = blData.top_suras, rows = blSurasAll ? all : all.slice(0, 10);
+        const tot = all.reduce((a, x) => a + x.occurrences, 0) || 1;
+        let t = '<tr><th>#</th><th>السورة</th><th>الصور</th><th>الآيات</th><th>النسبة</th></tr>';
+        rows.forEach((x, i) => { t += `<tr><td>${i + 1}</td><td><b>${blEsc(x.name)}</b></td><td>${x.occurrences}</td><td>${x.ayahs}</td><td>${(100 * x.occurrences / tot).toFixed(1)}%</td></tr>`; });
+        if (!rows.length) t += '<tr><td colspan="5">—</td></tr>';
+        document.getElementById('bl_suras').innerHTML = t;
+        const b = document.getElementById('bl_suras_btn');
+        b.style.display = all.length > 10 ? 'inline-block' : 'none';
+        b.textContent = blSurasAll ? 'العشر الأوائل' : `كل السور (${all.length})`;
+    }
+
+    var BL_BINS = {
+        mushaf: [[1, 11, 'الفاتحة-هود'], [12, 22, 'يوسف-الحج'], [23, 34, 'المؤمنون-سبأ'], [35, 45, 'فاطر-الجاثية'], [46, 57, 'الأحقاف-الحديد'],
+                 [58, 68, 'المجادلة-القلم'], [69, 79, 'الحاقة-النازعات'], [80, 91, 'عبس-الشمس'], [92, 102, 'الليل-التكاثر'], [103, 114, 'العصر-الناس']],
+        rev: [[1, 11, 'العلق-الضحى'], [12, 22, 'الشرح-الإخلاص'], [23, 34, 'النجم-ق'], [35, 45, 'البلد-طه'], [46, 57, 'الواقعة-لقمان'],
+              [58, 68, 'سبأ-الغاشية'], [69, 79, 'الكهف-المعارج'], [80, 91, 'النبأ-الممتحنة'], [92, 102, 'النساء-النور'], [103, 114, 'الحج-النصر']],
+    };
+    // بدايات الأجزاء الثلاثين (سورة، آية): أجزاء متقاربة في طول النص (بين 2484 و2976 كلمة)، فيكفي فيها العدد
+    var BL_JUZ = [[1, 1], [2, 142], [2, 253], [3, 93], [4, 24], [4, 148], [5, 83], [6, 111], [7, 88], [8, 41],
+                  [9, 93], [11, 6], [12, 53], [15, 1], [17, 1], [18, 75], [21, 1], [23, 1], [25, 21], [27, 56],
+                  [29, 46], [33, 31], [36, 28], [39, 32], [41, 47], [46, 1], [51, 31], [58, 1], [67, 1], [78, 1]];
+    function blJuzOf(sura, aya) {
+        let j = 0;
+        for (let i = 0; i < BL_JUZ.length; i++) {
+            if (sura > BL_JUZ[i][0] || (sura === BL_JUZ[i][0] && aya >= BL_JUZ[i][1])) j = i; else break;
+        }
+        return j;
+    }
+
+    // المفسّرون المعروضون الذين لم تكتمل قراءتهم
+    function blPartialShown() {
+        return blMeta.sources.filter(s => blData.shown_sources.includes(s.key) && s.coverage);
+    }
+    function blCovered(x, partial) {
+        return partial.every(s => x.aya <= (s.coverage[String(x.sura)] || 0));
+    }
+
+    // بيانات الرسم وجدوله:
+    //  - خط لكل مفسّر: عدد صوره في القطاع (وفي «الاثنان معًا»: عدد الآيات التي فيها صورته، لتتّحد الوحدة)
+    //  - الخط الشامل: عدد الآيات (كل آية مرة واحدة، ولو ذكرها أكثر من مفسّر)
+    //  - «لكل 100 آية»: القسمة على آيات القطاع (أو المقروء منها إذا حُصر الرسم)
+    function blChartData(kind) {
+        const juz = kind === 'juz';
+        const bins = juz ? BL_JUZ.map((_, i) => [0, 0, String(i + 1)]) : BL_BINS[kind];
+        const nb = bins.length;
+        const multi = blData.shown_sources.length > 1;
+        const series = multi ? blChartSeries : 'per';
+        const partial = blPartialShown();
+        const restrict = partial.length > 0 && document.getElementById('bl_restrict').checked;
+        const binOf = (sura, aya) => {
+            if (juz) return blJuzOf(sura, aya);
+            const pos = kind === 'rev' ? (blMeta.rev_order[sura] || 1) : sura;
+            return bins.findIndex(r => pos >= r[0] && pos <= r[1]);
+        };
+        const perSrc = {}, total = new Array(nb).fill(0), denom = new Array(nb).fill(0);
+        blData.shown_sources.forEach(k => { perSrc[k] = new Array(nb).fill(0); });
+        const ayaUnit = series !== 'per';
+        blData.results.forEach(x => {
+            if (restrict && !blCovered(x, partial)) return;
+            const b = binOf(x.sura, x.aya);
+            if (b < 0) return;
+            total[b]++;
+            if (ayaUnit) new Set(x.chips.map(c => c[0])).forEach(k => { if (perSrc[k]) perSrc[k][b]++; });
+            else x.chips.forEach(c => { if (perSrc[c[0]]) perSrc[c[0]][b]++; });
+        });
+        // المقام: آيات القطاع (كلها، أو المقروء منها عند كل المفسّرين غير المكتملين)
+        Object.entries(blMeta.aya_counts).forEach(([s, n]) => {
+            const read = restrict ? Math.min(n, ...partial.map(p => p.coverage[s] || 0)) : n;
+            if (juz) { for (let a = 1; a <= read; a++) denom[blJuzOf(Number(s), a)]++; return; }
+            const b = binOf(Number(s), 1);
+            if (b >= 0) denom[b] += read;
+        });
+        const dens = !juz && blChartScale === 'dens';
+        const val = (n, b) => dens ? (denom[b] ? Math.round(10000 * n / denom[b]) / 100 : 0) : n;
+        const mk = (label, arr, rgb, extra) => Object.assign({ label: label, data: arr.map(val), backgroundColor: `rgba(${rgb}, 0.7)`,
+            borderColor: `rgb(${rgb})`, borderWidth: 2, fill: false, tension: 0.25, pointRadius: 4 }, extra || {});
+        const ds = [];
+        if (series !== 'per') ds.push(mk('الشامل (آيات)', total, '69, 90, 100', { borderWidth: 3, pointRadius: 5, order: 0 }));
+        if (series !== 'total') blData.shown_sources.forEach(k => ds.push(mk(blName(k) + (ayaUnit ? ' (آيات)' : ''), perSrc[k], blRgb(k), { order: 1 })));
+        const unit = (ayaUnit ? 'آيات' : 'صور') + (dens ? ' لكل 100 آية' : '');
+        let note = series === 'per' ? '' : 'الخط الشامل يعدّ الآيات: كل آية فيها الصورة مرة واحدة، ولو ذكرها أكثر من مفسّر. ';
+        if (juz) note += 'الأجزاء متقاربة في طول النص، فالعدد فيها يبيّن أين يكثر استعمال الصورة وأين يقلّ عبر المصحف. ';
+        if (dens) note += 'القيم مقسومة على عدد آيات القطاع' + (restrict ? ' المقروءة' : '') + ' × 100. ';
+        if (partial.length && !restrict) note += 'تنبيه: ' + partial.map(p => `${p.name} لم يُقرأ منه إلا (${p.coverage_text})`).join('؛ ') +
+            '، فما بعده يقوم على المفسّرين الآخرين وحدهم وقد ينخفض الخط لنقص المصدر لا لقلة الصور. اختر «حصر الرسم» لمقارنة متكافئة.';
+        if (restrict) note += 'الرسم محصور في ما قُرئ من ' + partial.map(p => `${p.name} (${p.coverage_text})`).join('؛ ') + '.';
+        return {
+            labels: bins.map(b => b[2]), datasets: ds, unit: unit, note: note.trim(),
+            table: { headers: [juz ? 'الجزء' : 'القطاع'].concat(ds.map(d => d.label)),
+                     rows: bins.map((b, i) => [juz ? 'الجزء ' + b[2] : b[2]].concat(ds.map(d => d.data[i]))).concat(
+                         dens ? [] : [['المجموع'].concat(ds.map(d => d.data.reduce((a, v) => a + v, 0)))]) },
+        };
+    }
+
+    // صورة PNG للرسم (للتصدير إلى Word): لوحة خارج الصفحة بخلفية بيضاء ونص داكن، بنوع الرسم المختار
+    function blChartImage(kind) {
+        if (typeof Chart === 'undefined' || !blData) return null;
+        const cv = document.createElement('canvas');
+        cv.width = 1100; cv.height = 460;
+        cv.style.position = 'fixed'; cv.style.left = '-5000px';
+        document.body.appendChild(cv);
+        const white = { id: 'white', beforeDraw: ch => { const c = ch.ctx; c.save(); c.fillStyle = '#ffffff'; c.fillRect(0, 0, ch.width, ch.height); c.restore(); } };
+        const d = blChartData(kind);
+        const ch = new Chart(cv.getContext('2d'), {
+            type: blChartType, data: { labels: d.labels, datasets: d.datasets }, plugins: [white],
+            options: {
+                responsive: false, animation: false, devicePixelRatio: 1,
+                layout: { padding: { right: 35, left: 20, top: 10 } },
+                plugins: { legend: { display: d.datasets.length > 1, labels: { color: '#222', font: { family: 'Tajawal', size: 16 } } },
+                           title: { display: true, text: kind === 'rev' ? 'بحسب ترتيب النزول' : (kind === 'juz' ? 'بحسب الأجزاء' : 'بحسب ترتيب المصحف'), color: '#1B5E20', font: { family: 'Tajawal', size: 18 } } },
+                scales: { x: { reverse: true, ticks: { color: '#222', font: { family: 'Tajawal', size: 13 }, autoSkip: false } },
+                          y: { beginAtZero: true, title: { display: true, text: d.unit, color: '#444', font: { family: 'Tajawal', size: 13 } },
+                               ticks: { color: '#222', font: { family: 'Tajawal', size: 13 } } } }
+            }
+        });
+        const url = cv.toDataURL('image/png');
+        ch.destroy();
+        cv.remove();
+        return { img: url, headers: d.table.headers, rows: d.table.rows, note: d.note, unit: d.unit };
+    }
+
+    function blDrawChart() {
+        const canvas = document.getElementById('bl_chart');
+        if (!canvas || typeof Chart === 'undefined' || !blData || !blMeta) return;
+        [['bl_k_juz', blChartKind === 'juz'], ['bl_k_mushaf', blChartKind === 'mushaf'], ['bl_k_rev', blChartKind === 'rev'],
+         ['bl_t_bar', blChartType === 'bar'], ['bl_t_line', blChartType === 'line'],
+         ['bl_s_count', blChartScale === 'count'], ['bl_s_dens', blChartScale === 'dens']]
+            .forEach(([id, on]) => document.getElementById(id).classList.toggle('bl-btn-off', !on));
+        document.getElementById('bl_scale_box').style.display = blChartKind === 'juz' ? 'none' : 'inline';
+        const partial = blPartialShown();
+        document.getElementById('bl_series_box').style.display = blData.shown_sources.length > 1 ? 'block' : 'none';
+        document.getElementById('bl_restrict_box').style.display = partial.length ? 'block' : 'none';
+        document.getElementById('bl_restrict_names').textContent = partial.map(p => `${p.name} (${p.coverage_text})`).join('، ');
+        const d = blChartData(blChartKind);
+        document.getElementById('bl_chart_note').textContent = d.note;
+        const ds = d.datasets;
+        if (blChartObj) blChartObj.destroy();
+        blChartObj = new Chart(canvas.getContext('2d'), {
+            type: blChartType,
+            data: { labels: d.labels, datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { right: 35, left: 20 } },
+                plugins: { legend: { display: ds.length > 1, labels: { font: { family: 'Tajawal', size: 14 } } } },
+                scales: { x: { reverse: true, title: { display: blChartKind === 'juz', text: 'الأجزاء', font: { family: 'Tajawal' } },
+                               ticks: { font: { family: 'Tajawal' }, autoSkip: false } },
+                          y: { beginAtZero: true, title: { display: true, text: d.unit, font: { family: 'Tajawal' } }, ticks: { font: { family: 'Tajawal' } } } }
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------- التصدير والنسخ
+    async function blWord() {
+        if (!blLastFilters) return;
+        const btn = document.getElementById('bl_word'), old = btn.textContent;
+        btn.textContent = 'جاري التصدير... ⏳';
+        try {
+            const charts = { juz: blChartImage('juz'), mushaf: blChartImage('mushaf'), rev: blChartImage('rev') };
+            const res = await fetch('/api/balagha_word', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                           body: JSON.stringify({ filters: blLastFilters, charts: charts }) });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'البحث_البلاغي.docx';
+            document.body.appendChild(a); a.click(); a.remove();
+            btn.textContent = 'تم التصدير ✔';
+        } catch (e) { btn.textContent = 'حدث خطأ!'; console.error(e); }
+        setTimeout(() => { btn.textContent = old; }, 2500);
+    }
+
+    function blCopy() {
+        if (!blData) return;
+        const L = ['الباحث في القرآن الكريم — البحث البلاغي', blData.label, `${blData.images} صورة في ${blData.ayahs} آية`];
+        if (blData.coverage_note) L.push(blData.coverage_note);
+        L.push('');
+        blData.results.forEach((x, i) => {
+            const rng = x.aya_to > x.aya ? `${x.aya}-${x.aya_to}` : x.aya;
+            L.push(`${i + 1}. ﴿ ${x.texts.join(' ۝ ')} ﴾ [${x.sura_name}: ${rng}] — ` +
+                   x.chips.map(c => blName(c[0]) + ': ' + c[1] + (c[2] !== 'إثبات' ? ' (' + c[2] + ')' : '')).join('، '));
+        });
+        navigator.clipboard.writeText(L.join('\n')).then(() => {
+            const b = document.getElementById('bl_copy'), old = b.textContent;
+            b.textContent = 'تم النسخ ✔';
+            setTimeout(() => { b.textContent = old; }, 2000);
+        }).catch(() => alert('تعذّر النسخ إلى الحافظة.'));
+    }
+
+    async function blOutside() {
+        const card = document.getElementById('bl_out_card');
+        const first = card.style.display !== 'block';
+        card.style.display = 'block';
+        const tbl = document.getElementById('bl_out');
+        tbl.innerHTML = '<tr><td>جاري التحميل... ⏳</td></tr>';
+        if (first) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const f = Object.assign(blFilters(), { kind: document.getElementById('bl_out_kind').value, osource: document.getElementById('bl_out_src').value });
+        try {
+            const res = await fetch('/api/balagha_outside', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) });
+            const rows = await res.json();
+            if (rows.error) { tbl.innerHTML = `<tr><td>${blEsc(rows.error)}</td></tr>`; return; }
+            let t = `<tr><th>المفسّر</th><th>النوع</th><th>السورة</th><th>الآية</th><th>اللفظ</th><th style="text-align: right;">العبارة / الملاحظة</th><th>الجزء/الصفحة</th><th>page_id</th></tr>`;
+            rows.forEach(r => {
+                t += `<tr><td style="color: rgb(${blRgb(r.source)}); font-weight: bold;">${blEsc(r.source_name)}</td><td>${blEsc(r.kind)}</td>
+                      <td>${blEsc(r.sura_name)}</td><td>${blEsc(r.aya_raw)}</td><td style="font-family: 'Amiri'; font-size: 18px;">${blEsc(r.lafz)}</td>
+                      <td style="text-align: right; line-height: 1.7;">${blEsc(r.text)}</td><td>${blEsc(r.juz_page)}</td><td>${blEsc(r.page_id)}</td></tr>`;
+            });
+            if (!rows.length) t += '<tr><td colspan="8">لا مواضع مطابقة.</td></tr>';
+            tbl.innerHTML = t;
+            document.getElementById('bl_out_count').textContent = rows.length + ' موضعًا';
+        } catch (e) { tbl.innerHTML = `<tr><td>تعذّر الاتصال بالخادم: ${blEsc(e)}</td></tr>`; }
+    }
+
+    // التهيئة فورًا (الواجهة تُحقن بعد تحميل الصفحة)
+    (function () { blInit(); })();
+</script>

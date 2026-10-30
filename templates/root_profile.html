@@ -67,13 +67,22 @@
     <div class="card" style="padding: 20px; margin-top: 15px;">
         <h3 style="color: var(--primary); margin-top: 0;">التوزيع</h3>
         <div style="margin-bottom: 8px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-            <button class="btn-icon" style="background: var(--primary);" onclick="drawRootChart('mushaf')">ترتيب المصحف</button>
-            <button class="btn-icon" style="background: var(--accent);" onclick="drawRootChart('revelation')">ترتيب النزول</button>
+            <button id="rp_k_juz" class="btn-icon" style="background: var(--primary);" onclick="drawRootChart('juz')">الأجزاء</button>
+            <button id="rp_k_mushaf" class="btn-icon" style="background: var(--primary);" onclick="drawRootChart('mushaf')">ترتيب المصحف</button>
+            <button id="rp_k_revelation" class="btn-icon" style="background: var(--primary);" onclick="drawRootChart('revelation')">ترتيب النزول</button>
             <span style="margin-inline-start: 15px; font-weight: bold;">شكل الرسم:</span>
-            <button class="btn-icon" style="background: #455A64;" onclick="setRootChartType('bar')">أعمدة 📊</button>
-            <button class="btn-icon" style="background: #455A64;" onclick="setRootChartType('line')">خطي 📈</button>
+            <button id="rp_t_bar" class="btn-icon" style="background: #455A64;" onclick="setRootChartType('bar')">أعمدة 📊</button>
+            <button id="rp_t_line" class="btn-icon" style="background: #455A64;" onclick="setRootChartType('line')">خطي 📈</button>
+            <span style="margin-inline-start: 15px; font-weight: bold;">الوحدة:</span>
+            <button id="rp_u_occ" class="btn-icon" style="background: #00695C;" onclick="rpChartUnit='occ'; drawRootChart(rpChartKind);">المواضع</button>
+            <button id="rp_u_ayas" class="btn-icon" style="background: #00695C;" onclick="rpChartUnit='ayas'; drawRootChart(rpChartKind);">الآيات</button>
+            <span id="rp_scale_box">
+                <button id="rp_s_dens" class="btn-icon" style="background: #6D4C41;" onclick="rpChartScale='dens'; drawRootChart(rpChartKind);">لكل 100 آية</button>
+                <button id="rp_s_count" class="btn-icon" style="background: #6D4C41;" onclick="rpChartScale='count'; drawRootChart(rpChartKind);">العدد</button>
+            </span>
         </div>
         <div style="height: 280px;"><canvas id="rp_chart"></canvas></div>
+        <p id="rp_chart_note" style="font-size: 12px; color: #777; line-height: 1.7; margin: 6px 0 0 0;"></p>
         <h4 style="color: var(--primary);">أكثر السور ورودًا للجذر</h4>
         <div id="rp_suras" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
     </div>
@@ -112,7 +121,9 @@
 <script>
     var rpData = null;
     var rpChartObj = null;
-    var rpChartKind = 'mushaf';
+    var rpChartKind = 'juz';      // juz | mushaf | revelation (القسم 25 من سجل التطوير)
+    var rpChartUnit = 'occ';      // occ (المواضع) | ayas (الآيات)
+    var rpChartScale = 'dens';    // للقطاعات العشرة؛ الأجزاء بالعدد دائمًا
     var rpChartType = 'bar';
     var rpCompare = false;      // وضع المقارنة مفعّل في الواجهة
     var rpData2 = null;         // ملف الجذر الثاني (إن كان البحث المعروض مقارنة)
@@ -253,32 +264,66 @@
 
         document.getElementById('rp_suras').innerHTML = d.top_suras.map(s =>
             `<span class="rp-chip" style="font-family:'Tajawal'; font-size:15px;">${rpEsc(s.name)}: <b>${s.count}</b></span>`).join('');
-        drawRootChart('mushaf');
+        drawRootChart(rpChartKind);
         renderCo('count');
     }
 
-    function drawRootChart(kind) {
+    function rpOpts(kind) {
+        return { sort: kind, unit: rpChartUnit, dens: kind !== 'juz' && rpChartScale === 'dens' };
+    }
+    function rpVals(d, o) {
+        if (!d) return [];
+        const base = (o.unit === 'occ' ? (d.occ || d.counts) : d.counts) || [];
+        if (!o.dens) return base.slice();
+        return base.map((v, i) => (d.totals && d.totals[i]) ? Math.round(10000 * v / d.totals[i]) / 100 : 0);
+    }
+    function rpUnitLabel(o) { return (o.unit === 'occ' ? 'المواضع' : 'الآيات') + (o.dens ? ' لكل 100 آية' : ''); }
+    function rpChartTable(kind) {
+        const o = rpOpts(kind), d1 = rpData.distribution[kind], d2 = rpData2 ? rpData2.distribution[kind] : null;
+        const v1 = rpVals(d1, o), v2 = d2 ? rpVals(d2, o) : null;
+        const rows = [];
+        d1.labels.forEach((lab, i) => { if (v1[i] > 0 || (v2 && v2[i] > 0)) rows.push([kind === 'juz' ? 'الجزء ' + lab : lab, v1[i]].concat(v2 ? [v2[i]] : [])); });
+        return { title: kind === 'juz' ? 'حسب الأجزاء' : (kind === 'mushaf' ? 'حسب ترتيب المصحف' : 'حسب ترتيب النزول'),
+                 unit: rpUnitLabel(o), headers: [kind === 'juz' ? 'الجزء' : 'القطاع', '«' + rpSp(rpData.root) + '»'].concat(d2 ? ['«' + rpSp(rpData2.root) + '»'] : []),
+                 rows: rows };
+    }
+
+    function drawRootChart(kind, animate) {
         if (!rpData) return;
         rpChartKind = kind;
+        const o = rpOpts(kind);
+        [['rp_k_juz', kind === 'juz'], ['rp_k_mushaf', kind === 'mushaf'], ['rp_k_revelation', kind === 'revelation'],
+         ['rp_t_bar', rpChartType === 'bar'], ['rp_t_line', rpChartType === 'line'],
+         ['rp_u_occ', rpChartUnit === 'occ'], ['rp_u_ayas', rpChartUnit === 'ayas'],
+         ['rp_s_dens', rpChartScale === 'dens'], ['rp_s_count', rpChartScale === 'count']]
+            .forEach(([id, on]) => { const b = document.getElementById(id); if (b) b.style.opacity = on ? '1' : '0.45'; });
+        document.getElementById('rp_scale_box').style.display = kind === 'juz' ? 'none' : 'inline';
+        document.getElementById('rp_chart_note').textContent =
+            (kind === 'juz' ? 'الأجزاء متقاربة في طول النص، فالعدد فيها يبيّن أين يكثر الجذر وأين يقلّ عبر المصحف. '
+                            : (o.dens ? 'القطاعات غير متساوية في عدد الآيات، فالقيم مقسومة على آيات القطاع × 100. ' : 'تنبيه: القطاعات غير متساوية في عدد الآيات، فالعدد المجرد يرفع القطاعات الطويلة. ')) +
+            'الوحدة: ' + rpUnitLabel(o) + '.';
         const ctx = document.getElementById('rp_chart').getContext('2d');
         if (rpChartObj) rpChartObj.destroy();
         const mk = (prof, color) => ({
-            label: '«' + rpSp(prof.root) + '»', data: prof.distribution[kind].counts,
+            label: '«' + rpSp(prof.root) + '»', data: rpVals(prof.distribution[kind], o),
             backgroundColor: color, borderColor: color.replace('0.7', '1'), borderWidth: 2,
-            fill: false, tension: 0.25, pointRadius: 4
+            fill: false, tension: 0.25, pointRadius: kind === 'juz' ? 3 : 4
         });
-        const datasets = [mk(rpData, kind === 'mushaf' ? 'rgba(27, 94, 32, 0.7)' : 'rgba(197, 155, 39, 0.7)')];
+        const datasets = [mk(rpData, kind === 'revelation' ? 'rgba(197, 155, 39, 0.7)' : 'rgba(27, 94, 32, 0.7)')];
         if (rpData2) datasets.push(mk(rpData2, 'rgba(192, 57, 43, 0.7)'));
         rpChartObj = new Chart(ctx, {
             type: rpChartType,
             data: { labels: rpData.distribution[kind].labels, datasets: datasets },
             options: {
+                animation: animate === false ? false : undefined,
                 responsive: true, maintainAspectRatio: false,
                 // هامش على الجانبين حتى لا يُقصّ اسم أول قطاع (الفاتحة) وآخره
                 layout: { padding: { right: 35, left: 20 } },
                 plugins: { legend: { display: !!rpData2, labels: { font: { family: 'Tajawal', size: 14 } } } },
-                scales: { x: { reverse: true, ticks: { font: { family: 'Tajawal' }, autoSkip: false } },
-                          y: { beginAtZero: true, ticks: { font: { family: 'Tajawal' } } } }
+                scales: { x: { reverse: true, title: { display: kind === 'juz', text: 'الأجزاء', font: { family: 'Tajawal' } },
+                               ticks: { font: { family: 'Tajawal' }, autoSkip: false } },
+                          y: { beginAtZero: true, title: { display: true, text: rpUnitLabel(o), font: { family: 'Tajawal' } },
+                               ticks: { font: { family: 'Tajawal' } } } }
             }
         });
     }
@@ -361,10 +406,17 @@
         btn.textContent = 'جاري التصدير... ⏳';
         try {
             const canvas = document.getElementById('rp_chart');
+            // صور المحاور الثلاثة وجداولها كما تُعرض (المحور والوحدة والكثافة المختارة)
+            const charts = {}, keep = rpChartKind;
+            ['juz', 'mushaf', 'revelation'].forEach(k => {
+                drawRootChart(k, false);
+                charts[k] = Object.assign(rpChartTable(k), { img: canvas.toDataURL('image/png') });
+            });
+            drawRootChart(keep);
             const res = await fetch('/api/root_profile_word', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ profile: rpData, profile2: rpData2, pair: rpPair,
-                                       chart: canvas ? canvas.toDataURL('image/png') : null })
+                                       chart: charts.mushaf.img, charts: charts })
             });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const blob = await res.blob();

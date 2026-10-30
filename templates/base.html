@@ -233,6 +233,7 @@
         <button id="btn-tab-grammar" class="tab-item" onclick="loadTab('grammar')">البحث النحوي والصرفي المتقدم</button>
         <button id="btn-tab-root_profile" class="tab-item" onclick="loadTab('root_profile')">ملف الجذر 🌳</button>
         <button id="btn-tab-general_stats" class="tab-item" onclick="loadTab('general_stats')">الإحصاء العام 📊</button>
+        <button id="btn-tab-balagha" class="tab-item" onclick="loadTab('balagha')">البحث البلاغي 🎨</button>
         {% if show_admin %}
         <button id="btn-tab-consistency" class="tab-item" onclick="loadTab('consistency')">فحص التماسك (إداري) 🛠️</button>
         {% endif %}
@@ -248,12 +249,13 @@
     <div id="tab-content-grammar" style="display: none;"></div>
     <div id="tab-content-root_profile" style="display: none;"></div>
     <div id="tab-content-general_stats" style="display: none;"></div>
+    <div id="tab-content-balagha" style="display: none;"></div>
     <div id="tab-content-consistency" style="display: none;"></div>
 </div>
 
 <script>
     // تتبع التبويبات المحملة
-    const loadedTabs = { verbal: false, grammar: false, root_profile: false, general_stats: false, consistency: false };
+    const loadedTabs = { verbal: false, grammar: false, root_profile: false, general_stats: false, balagha: false, consistency: false };
 
     async function loadTab(tabName) {
         const containers = {
@@ -261,6 +263,7 @@
             grammar: document.getElementById('tab-content-grammar'),
             root_profile: document.getElementById('tab-content-root_profile'),
             general_stats: document.getElementById('tab-content-general_stats'),
+            balagha: document.getElementById('tab-content-balagha'),
             consistency: document.getElementById('tab-content-consistency'),
         };
         const buttons = {
@@ -268,6 +271,7 @@
             grammar: document.getElementById('btn-tab-grammar'),
             root_profile: document.getElementById('btn-tab-root_profile'),
             general_stats: document.getElementById('btn-tab-general_stats'),
+            balagha: document.getElementById('btn-tab-balagha'),
             consistency: document.getElementById('btn-tab-consistency'),
         };
 

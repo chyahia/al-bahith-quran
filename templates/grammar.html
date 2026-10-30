@@ -249,8 +249,17 @@
         <h3>التحليل البياني للانتشار النحوي</h3>
         <div class="chart-tools">
             <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
-                <label><input type="radio" name="grammar_chart_sort" value="mushaf" onchange="updateGrammarAnalytics()" checked> حسب المصحف</label>
+                <label><input type="radio" name="grammar_chart_sort" value="juz" onchange="updateGrammarAnalytics()" checked> حسب الأجزاء</label>
+                <label><input type="radio" name="grammar_chart_sort" value="mushaf" onchange="updateGrammarAnalytics()"> حسب المصحف</label>
                 <label><input type="radio" name="grammar_chart_sort" value="revelation" onchange="updateGrammarAnalytics()"> حسب النزول</label>
+            </div>
+            <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
+                <label><input type="radio" name="grammar_chart_unit" value="occ" onchange="updateGrammarAnalytics()" checked> المواضع</label>
+                <label><input type="radio" name="grammar_chart_unit" value="ayas" onchange="updateGrammarAnalytics()"> الآيات</label>
+            </div>
+            <div class="chart-col" id="grammarChartScaleCol" style="border-left: 1px solid var(--border); padding-left: 15px; display: none;">
+                <label><input type="radio" name="grammar_chart_scale" value="dens" onchange="updateGrammarAnalytics()" checked> لكل 100 آية</label>
+                <label><input type="radio" name="grammar_chart_scale" value="count" onchange="updateGrammarAnalytics()"> العدد</label>
             </div>
             <div class="chart-col" style="border-left: 1px solid var(--border); padding-left: 15px;">
                 <label><input type="radio" name="grammar_chart_type" value="bar" onchange="updateGrammarAnalytics()" checked> أعمدة</label>
@@ -267,6 +276,7 @@
         <canvas id="grammarChart" style="background: var(--card); border-radius: 8px; padding: 10px;"></canvas>
     </div>
 
+    <p id="grammarChartNote" style="font-size: 12px; color: var(--text-muted, #777); line-height: 1.7; margin: -10px 0 12px 0;"></p>
     <table class="stats-table" id="grammarStatsTable">
         <thead><tr><th>القطاع / القسم</th><th>عدد المواضع</th><th style="width: 40%">النسبة المئوية</th></tr></thead>
         <tbody id="grammarStatsTableBody"></tbody>
@@ -482,11 +492,44 @@
         container.innerHTML = html;
     }
 
+    // ===== قيم الرسم (القسم 25 من سجل التطوير): المحور والوحدة والكثافة =====
+    function gChartOpts(sortOverride) {
+        const sort = sortOverride || document.querySelector('input[name="grammar_chart_sort"]:checked').value;
+        const unit = document.querySelector('input[name="grammar_chart_unit"]:checked').value;
+        const dens = sort !== 'juz' && document.querySelector('input[name="grammar_chart_scale"]:checked').value === 'dens';
+        return { sort: sort, unit: unit, dens: dens };
+    }
+    function gChartVals(d, o) {
+        if (!d) return [];
+        const base = (o.unit === 'occ' ? (d.occ || d.counts) : d.counts) || [];
+        if (!o.dens) return base.slice();
+        return base.map((v, i) => (d.totals && d.totals[i]) ? Math.round(10000 * v / d.totals[i]) / 100 : 0);
+    }
+    function gUnitLabel(o) { return (o.unit === 'occ' ? 'المواضع' : 'الآيات') + (o.dens ? ' لكل 100 آية' : ''); }
+    function gSectionLabel(o, label) { return o.sort === 'juz' ? 'الجزء ' + label : label; }
+    function gChartTable(o) {
+        const d1 = grammarChartDataStore[o.sort], d2 = (isGrammarCompare && grammarChartDataStore2) ? grammarChartDataStore2[o.sort] : null;
+        if (!d1) return null;
+        const v1 = gChartVals(d1, o), v2 = d2 ? gChartVals(d2, o) : null;
+        const rows = [];
+        d1.labels.forEach((lab, i) => { if (v1[i] > 0 || (v2 && v2[i] > 0)) rows.push([gSectionLabel(o, lab), v1[i]].concat(v2 ? [v2[i]] : [])); });
+        return { headers: [o.sort === 'juz' ? 'الجزء' : 'القسم'].concat(d2 ? [q1Title, q2Title] : [gUnitLabel(o)]), rows: rows, unit: gUnitLabel(o),
+                 title: o.sort === 'juz' ? 'حسب الأجزاء' : (o.sort === 'mushaf' ? 'حسب ترتيب المصحف' : 'حسب ترتيب النزول') };
+    }
+
     function updateGrammarAnalytics(animate = true) {
         if(!grammarChartDataStore || !grammarChartDataStore.mushaf) return;
         const chartType = document.querySelector('input[name="grammar_chart_type"]:checked').value;
-        const chartSort = document.querySelector('input[name="grammar_chart_sort"]:checked').value;
+        const o = gChartOpts();
+        const chartSort = o.sort;
+        document.getElementById('grammarChartScaleCol').style.display = chartSort === 'juz' ? 'none' : '';
         const selectedData = grammarChartDataStore[chartSort];
+        if (!selectedData) return;
+        const vals1 = gChartVals(selectedData, o);
+        document.getElementById('grammarChartNote').textContent =
+            (chartSort === 'juz' ? 'الأجزاء متقاربة في طول النص، فالعدد فيها يبيّن أين تكثر المواضع وأين تقلّ عبر المصحف. '
+                                 : (o.dens ? 'القطاعات غير متساوية في عدد الآيات، فالقيم مقسومة على آيات القطاع × 100. ' : 'تنبيه: القطاعات غير متساوية في عدد الآيات، فالعدد المجرد يرفع القطاعات الطويلة. ')) +
+            'الوحدة: ' + gUnitLabel(o) + '.';
         const ctx = document.getElementById('grammarChart').getContext('2d');
         const isDark = document.body.classList.contains('dark-mode');
         
@@ -497,7 +540,7 @@
         
         datasets.push({
             label: isGrammarCompare ? q1Title : 'انتشار المواضع النحوية',
-            data: selectedData.counts,
+            data: vals1,
             backgroundColor: chartType === 'bar' ? primaryColor : (isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(27, 94, 32, 0.15)'),
             borderColor: chartType === 'line' ? primaryColor : undefined,
             borderWidth: chartType === 'line' ? 2.5 : 0, fill: chartType === 'line', tension: 0.35,
@@ -509,7 +552,7 @@
             let compareColor = isDark ? 'rgba(231, 76, 60, 0.8)' : 'rgba(192, 57, 43, 0.8)';
             datasets.push({
                 label: q2Title,
-                data: selectedData2.counts,
+                data: gChartVals(selectedData2, o),
                 backgroundColor: chartType === 'bar' ? compareColor : (isDark ? 'rgba(231, 76, 60, 0.2)' : 'rgba(192, 57, 43, 0.15)'),
                 borderColor: chartType === 'line' ? compareColor : undefined,
                 borderWidth: chartType === 'line' ? 2.5 : 0, fill: chartType === 'line', tension: 0.35,
@@ -525,7 +568,8 @@
                 layout: { padding: { right: 35, left: 20 } },
                 scales: { 
                     x: { reverse: true, grid: { color: isDark ? '#333' : '#eee' }, ticks: { font: { family: 'Tajawal' } } }, 
-                    y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Tajawal' } }, grid: { color: isDark ? '#333' : '#eee' } } 
+                    y: { beginAtZero: true, title: { display: true, text: gUnitLabel(o), font: { family: 'Tajawal' }, color: isDark ? '#e0e0e0' : '#555' },
+                         ticks: { stepSize: o.dens ? undefined : 1, font: { family: 'Tajawal' } }, grid: { color: isDark ? '#333' : '#eee' } } 
                 }, plugins: { legend: { display: true, labels: { font: { family: 'Tajawal', size: 14 }, color: isDark ? '#e0e0e0' : '#333' } } } 
             }
         });
@@ -534,20 +578,22 @@
         tbody.innerHTML = '';
         if (isGrammarCompare && grammarChartDataStore2) {
             const selectedData2 = grammarChartDataStore2[chartSort];
-            document.querySelector('#grammarStatsTable thead tr').innerHTML = `<th>القطاع / القسم</th><th style="color: white;">${q1Title}</th><th style="background-color: #c0392b; color: white; border-color: #c0392b;">${q2Title}</th>`;
+            const vals2 = gChartVals(selectedData2, o);
+            document.querySelector('#grammarStatsTable thead tr').innerHTML = `<th>${chartSort === 'juz' ? 'الجزء' : 'القطاع / القسم'}</th><th style="color: white;">${q1Title}</th><th style="background-color: #c0392b; color: white; border-color: #c0392b;">${q2Title}</th>`;
             selectedData.labels.forEach((label, i) => {
-                if(selectedData.counts[i] > 0 || selectedData2.counts[i] > 0) { 
-                    tbody.innerHTML += `<tr><td><strong>${label}</strong></td><td style="color: var(--primary); font-weight: bold;">${selectedData.counts[i]}</td><td style="color: #c0392b; font-weight: bold;">${selectedData2.counts[i]}</td></tr>`;
+                if(vals1[i] > 0 || vals2[i] > 0) { 
+                    tbody.innerHTML += `<tr><td><strong>${gSectionLabel(o, label)}</strong></td><td style="color: var(--primary); font-weight: bold;">${vals1[i]}</td><td style="color: #c0392b; font-weight: bold;">${vals2[i]}</td></tr>`;
                 }
             });
         } else {
-            let total = selectedData.counts.reduce((a, b) => a + b, 0);
-            document.querySelector('#grammarStatsTable thead tr').innerHTML = `<th>القطاع / القسم</th><th>عدد المواضع</th><th style="width: 40%">النسبة المئوية</th>`;
+            const raw = gChartVals(selectedData, Object.assign({}, o, { dens: false }));
+            let total = raw.reduce((a, b) => a + b, 0);
+            document.querySelector('#grammarStatsTable thead tr').innerHTML = `<th>${chartSort === 'juz' ? 'الجزء' : 'القطاع / القسم'}</th><th>${gUnitLabel(o)}</th><th style="width: 40%">النسبة من المجموع</th>`;
             selectedData.labels.forEach((label, i) => {
-                let count = selectedData.counts[i];
+                let count = vals1[i];
                 if(count > 0) { 
-                    let percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
-                    tbody.innerHTML += `<tr><td><strong>${label}</strong></td><td>${count}</td><td><div style="display:flex; align-items:center; gap:10px; justify-content:center;"><span style="width:40px; font-weight:bold;">${percent}%</span><div class="progress-bar-bg" style="width:60%;"><div class="progress-bar-fill" style="width:${percent}%;"></div></div></div></td></tr>`;
+                    let percent = total > 0 ? ((raw[i] / total) * 100).toFixed(1) : 0;
+                    tbody.innerHTML += `<tr><td><strong>${gSectionLabel(o, label)}</strong></td><td>${count}</td><td><div style="display:flex; align-items:center; gap:10px; justify-content:center;"><span style="width:40px; font-weight:bold;">${percent}%</span><div class="progress-bar-bg" style="width:60%;"><div class="progress-bar-fill" style="width:${percent}%;"></div></div></div></td></tr>`;
                 }
             });
         }
@@ -577,10 +623,13 @@
         }));
 
         const originalSort = document.querySelector('input[name="grammar_chart_sort"]:checked').value;
-        document.querySelector('input[name="grammar_chart_sort"][value="mushaf"]').checked = true; updateGrammarAnalytics(false); 
-        const chartImageMushaf = document.getElementById('grammarChart').toDataURL('image/png'); 
-        document.querySelector('input[name="grammar_chart_sort"][value="revelation"]').checked = true; updateGrammarAnalytics(false);
-        const chartImageRev = document.getElementById('grammarChart').toDataURL('image/png'); 
+        const images = {}, tables = {};
+        ['juz', 'mushaf', 'revelation'].forEach(k => {
+            document.querySelector(`input[name="grammar_chart_sort"][value="${k}"]`).checked = true; updateGrammarAnalytics(false);
+            images[k] = document.getElementById('grammarChart').toDataURL('image/png');
+            tables[k] = gChartTable(gChartOpts(k));
+        });
+        const chartImageMushaf = images.mushaf, chartImageRev = images.revelation;
         document.querySelector(`input[name="grammar_chart_sort"][value="${originalSort}"]`).checked = true; updateGrammarAnalytics(true);
 
         const payload = {
@@ -589,7 +638,8 @@
             results: mappedResults, 
             display_type: 'clean', 
             stats_data: grammarChartDataStore, stats_data2: isGrammarCompare ? grammarChartDataStore2 : null,
-            chart_image_mushaf: chartImageMushaf, chart_image_rev: chartImageRev
+            chart_image_mushaf: chartImageMushaf, chart_image_rev: chartImageRev,
+            chart_image_juz: images.juz, chart_tables: tables
         };
 
         try {
@@ -613,18 +663,11 @@
 
     function downloadGrammarTableCSV() {
         if(!grammarChartDataStore || !grammarChartDataStore.mushaf) return;
-        const chartSort = document.querySelector('input[name="grammar_chart_sort"]:checked').value;
-        const selectedData = grammarChartDataStore[chartSort];
-        let csvContent = '\uFEFF'; 
-        if (isGrammarCompare && grammarChartDataStore2) {
-            const selectedData2 = grammarChartDataStore2[chartSort];
-            csvContent += `القسم,"${q1Title}","${q2Title}"\n`;
-            selectedData.labels.forEach((label, i) => { if(selectedData.counts[i] > 0 || selectedData2.counts[i] > 0) csvContent += `"${label}",${selectedData.counts[i]},${selectedData2.counts[i]}\n`; });
-        } else {
-            let total = selectedData.counts.reduce((a, b) => a + b, 0);
-            csvContent += "القسم,عدد المواضع,النسبة المئوية\n";
-            selectedData.labels.forEach((label, i) => { if(selectedData.counts[i] > 0) csvContent += `"${label}",${selectedData.counts[i]},"${total > 0 ? ((selectedData.counts[i] / total) * 100).toFixed(1) + "%" : "0%"}"\n`; });
-        }
+        const t = gChartTable(gChartOpts());
+        if (!t) return;
+        let csvContent = '\uFEFF';
+        csvContent += t.headers.map(h => `"${h}"`).join(',') + '\n';
+        t.rows.forEach(r => { csvContent += r.map((v, i) => i === 0 ? `"${v}"` : v).join(',') + '\n'; });
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = isGrammarCompare ? `مقارنة_هجينة.csv` : `إحصائيات_نحوية.csv`; link.click();
     }

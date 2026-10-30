@@ -6,7 +6,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor, Inches
 
-def create_word_document(query, query2, results, display_type, stats_data=None, stats_data2=None, chart_image_mushaf=None, chart_image_rev=None, grammar_data=None, collocations=None, notes=None):
+def create_word_document(query, query2, results, display_type, stats_data=None, stats_data2=None, chart_image_mushaf=None, chart_image_rev=None, grammar_data=None, collocations=None, notes=None, chart_image_juz=None, chart_tables=None):
     if notes is None:
         notes = {}
 
@@ -73,7 +73,7 @@ def create_word_document(query, query2, results, display_type, stats_data=None, 
     RLM = "\u200F"
 
     # ================= 1. إضافة الرسوم البيانية كصور =================
-    if chart_image_mushaf or chart_image_rev:
+    if chart_image_juz or chart_image_mushaf or chart_image_rev:
         p_img_title = doc.add_paragraph()
         make_rtl(p_img_title)
         r_img_title = p_img_title.add_run(f"{RLM}1. التحليل البياني للانتشار:{RLM}")
@@ -98,6 +98,7 @@ def create_word_document(query, query2, results, display_type, stats_data=None, 
                 run_pic.add_picture(image_stream, width=Inches(6.0))
             except: pass
 
+        if chart_image_juz: insert_chart(chart_image_juz, 'حسب الأجزاء')
         if chart_image_mushaf: insert_chart(chart_image_mushaf, 'حسب ترتيب المصحف')
         if chart_image_rev: insert_chart(chart_image_rev, 'حسب ترتيب النزول')
         doc.add_paragraph()
@@ -165,8 +166,42 @@ def create_word_document(query, query2, results, display_type, stats_data=None, 
                         set_run_rtl(run)
             doc.add_paragraph()
 
-        add_stats_table('mushaf', 'توزيع الكلمة حسب ترتيب المصحف')
-        add_stats_table('revelation', 'توزيع الكلمة حسب ترتيب النزول')
+        # الجداول كما عرضها الرسم (المحور والوحدة والكثافة المختارة)، القسم 25 من سجل التطوير
+        def add_given_table(t):
+            if not t or not t.get('rows'):
+                return
+            p_st = doc.add_paragraph()
+            make_rtl(p_st)
+            r_st = p_st.add_run(f"{RLM}- توزيع الكلمة {t.get('title', '')} (الوحدة: {t.get('unit', '')}):{RLM}")
+            r_st.font.bold = True
+            set_run_rtl(r_st)
+            headers = t.get('headers', [])
+            table = doc.add_table(rows=1, cols=len(headers))
+            table.style = 'Table Grid'
+            table._tbl.tblPr.append(OxmlElement('w:bidiVisual'))
+            for i, text in enumerate(headers):
+                p = table.rows[0].cells[i].paragraphs[0]
+                make_rtl(p)
+                run = p.add_run(RLM + str(text) + RLM)
+                run.font.size = Pt(12)
+                run.font.bold = True
+                set_run_rtl(run)
+            for row_data in t['rows']:
+                row_cells = table.add_row().cells
+                for i, text in enumerate(row_data):
+                    p = row_cells[i].paragraphs[0]
+                    make_rtl(p)
+                    run = p.add_run(RLM + str(text) + RLM)
+                    run.font.size = Pt(12)
+                    set_run_rtl(run)
+            doc.add_paragraph()
+
+        if chart_tables:
+            for key in ('juz', 'mushaf', 'revelation'):
+                add_given_table(chart_tables.get(key))
+        else:
+            add_stats_table('mushaf', 'توزيع الكلمة حسب ترتيب المصحف')
+            add_stats_table('revelation', 'توزيع الكلمة حسب ترتيب النزول')
 
     # ================= 3. لوحة الإعراب والتلازم (يتم إخفاؤها في المقارنة عادة ولكن نحتفظ بها إن وجدت) =================
     if not query2: # نعرضها فقط في البحث المفرد لتجنب التداخل
