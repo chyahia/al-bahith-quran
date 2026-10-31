@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الباحث في القرآن الكريم</title>
+<meta name="description" content="برنامج مجاني مفتوح المصدر للبحث في القرآن الكريم وتحليل ألفاظه صرفيًا ونحويًا وإحصائيًا وبلاغيًا، يعمل على الحاسوب دون اتصال بالإنترنت.">
+<meta property="og:title" content="الباحث في القرآن الكريم">
+<meta property="og:description" content="برنامج مجاني للبحث اللفظي والنحوي والبلاغي في القرآن الكريم، مع الإحصاء والرسوم وتقارير Word.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ar_AR">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f5c4d'/%3E%3Cpath d='M14 20c8-3 14-1 18 3 4-4 10-6 18-3v26c-8-3-14-1-18 3-4-4-10-6-18-3z' fill='none' stroke='%23e9d8a6' stroke-width='3.5' stroke-linejoin='round'/%3E%3Cpath d='M32 23v26' stroke='%23e9d8a6' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f4ec; --surface:#fffdf8; --ink:#1d2a26; --muted:#5d6b66; --line:#e3dccb;
+  --brand:#0f5c4d; --brand-ink:#ffffff; --accent:#a8792b; --soft:#eaf2ee;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 24px rgba(15,92,77,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111816; --surface:#18221f; --ink:#e8eee9; --muted:#9aaba4; --line:#2a3833;
+    --brand:#3fa58c; --brand-ink:#0b1412; --accent:#d4a957; --soft:#1d2c27;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111816; --surface:#18221f; --ink:#e8eee9; --muted:#9aaba4; --line:#2a3833;
+  --brand:#3fa58c; --brand-ink:#0b1412; --accent:#d4a957; --soft:#1d2c27;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;font-size:17px;line-height:1.85}
+a{color:var(--brand)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:"Amiri",serif;line-height:1.35;margin:0}
+h2{font-size:2rem;margin-bottom:.4rem}
+.lead{color:var(--muted);margin:0 0 1.6rem}
+
+/* header */
+header.top{border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:14px;padding-bottom:14px}
+.logo{display:flex;align-items:center;gap:10px;font-family:"Amiri",serif;font-size:1.3rem;font-weight:700;color:var(--ink);text-decoration:none}
+.logo svg{width:34px;height:34px}
+nav a{color:var(--muted);text-decoration:none;margin-inline-start:18px;font-size:.95rem}
+nav a:hover{color:var(--brand)}
+@media (max-width:720px){nav{display:none}}
+
+/* hero */
+.hero{padding:64px 0 56px;text-align:center}
+.hero .kicker{display:inline-block;background:var(--soft);color:var(--brand);border-radius:999px;padding:4px 14px;font-size:.88rem;font-weight:500;margin-bottom:18px}
+.hero h1{font-size:clamp(2.4rem,6vw,3.6rem);font-weight:700}
+.hero p{max-width:680px;margin:16px auto 30px;color:var(--muted);font-size:1.08rem}
+.btns{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.btn{display:inline-flex;align-items:center;gap:9px;padding:12px 22px;border-radius:12px;font-weight:600;text-decoration:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.btn svg{width:20px;height:20px;flex:none}
+.note{font-size:.88rem;color:var(--muted);margin-top:14px}
+
+section{padding:56px 0;border-top:1px solid var(--line)}
+
+/* features */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 22px 18px;box-shadow:var(--shadow)}
+.card .num{font-family:"Amiri",serif;color:var(--accent);font-size:1rem;font-weight:700}
+.card h3{font-size:1.4rem;margin:2px 0 6px}
+.card p{margin:0;color:var(--muted);font-size:.96rem}
+
+/* video */
+.video{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:#000}
+.video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
+/* data */
+.data .card{display:flex;flex-direction:column}
+.data .card .meta{color:var(--muted);font-size:.92rem;margin:0 0 14px}
+.data .card .count{font-size:2rem;font-family:"Amiri",serif;font-weight:700;color:var(--brand);line-height:1.2}
+.data .card .btn{margin-top:auto;align-self:flex-start;padding:9px 16px;font-size:.95rem}
+.caveat{background:var(--soft);border-radius:12px;padding:14px 18px;margin-top:20px;font-size:.95rem}
+
+/* steps */
+ol.steps{margin:0;padding-inline-start:1.3rem}
+ol.steps li{margin-bottom:.5rem}
+
+footer{border-top:1px solid var(--line);padding:32px 0 40px;color:var(--muted);font-size:.9rem}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:space-between}
+footer p{margin:0}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--brand)"/><path d="M14 20c8-3 14-1 18 3 4-4 10-6 18-3v26c-8-3-14-1-18 3-4-4-10-6-18-3z" fill="none" stroke="#e9d8a6" stroke-width="3.5" stroke-linejoin="round"/><path d="M32 23v26" stroke="#e9d8a6" stroke-width="3"/></svg>
+      الباحث في القرآن الكريم
+    </a>
+    <nav>
+      <a href="#features">المميزات</a>
+      <a href="#video">الشرح</a>
+      <a href="#data">ملفات البلاغة</a>
+      <a href="#install">التثبيت</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <span class="kicker">مجاني ومفتوح المصدر · يعمل دون إنترنت</span>
+      <h1>الباحث في القرآن الكريم</h1>
+      <p>برنامج للبحث في القرآن الكريم وتحليل ألفاظه صرفيًا ونحويًا وإحصائيًا وبلاغيًا، مع الرسوم البيانية وتصدير النتائج في تقارير Word بتنسيق عربي. صُمّم لخدمة الباحثين والطلبة في الدراسات القرآنية واللغوية.</p>
+      <div class="btns">
+        <a class="btn primary" href="https://github.com/chyahia/al-bahith-quran/releases/download/3.0/Quran_Search_v3.exe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19h16"/></svg>
+          تحميل نسخة Windows
+        </a>
+        <a class="btn" href="https://www.mediafire.com/file/5wdttbpgtp4kvqb/Quran_Search_v3.exe/file" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19h16"/></svg>
+          رابط احتياطي (MediaFire)
+        </a>
+        <a class="btn" href="https://github.com/chyahia/al-bahith-quran" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.7 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
+          الشيفرة في GitHub
+        </a>
+      </div>
+      <p class="note">الإصدار 3.0 · لنظام Windows · ملف واحد لا يحتاج إلى تثبيت إضافي</p>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>ما يقدّمه البرنامج</h2>
+      <p class="lead">ستة تبويبات، تجمع البحث في اللفظ والنحو والجذر والبلاغة في مكان واحد.</p>
+      <div class="grid">
+        <div class="card"><span class="num">١</span><h3>البحث اللفظي</h3><p>التطابق التام والجزئي والجمل والجذور، مع الاستبعاد والمقارنة بين كلمتين، والألفاظ المصاحبة، وأكثر السور ورودًا.</p></div>
+        <div class="card"><span class="num">٢</span><h3>البحث النحوي والصرفي</h3><p>فلاتر على الوسم الصرفي والموقع النحوي والحالة الإعرابية والضمائر المتصلة، اعتمادًا على قاعدة MASAQ.</p></div>
+        <div class="card"><span class="num">٣</span><h3>ملف الجذر</h3><p>صيغ الجذر المعجمية، والأسماء والأفعال، والجذور المصاحبة، والمقارنة بين جذرين، في صفحة واحدة.</p></div>
+        <div class="card"><span class="num">٤</span><h3>الإحصاء العام</h3><p>ترتيب الجذور، ونسبة الأفعال إلى الأسماء في كل سورة، والموازنة بين المكي والمدني.</p></div>
+        <div class="card"><span class="num">٥</span><h3>البحث البلاغي</h3><p>الصور البيانية عند الزمخشري وابن عاشور والصابوني: التشبيه والاستعارة والمجاز والكناية، مع الاتفاق والانفراد بينهم.</p></div>
+        <div class="card"><span class="num">٦</span><h3>الرسوم والتقارير</h3><p>التوزيع على الأجزاء وبترتيب المصحف والنزول، بالعدد أو لكل 100 آية، وتقارير Word وملفات Excel.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="video">
+    <div class="wrap">
+      <h2>شرح موجز للبرنامج</h2>
+      <p class="lead">جولة سريعة في التبويبات وطريقة البحث.</p>
+      <div class="video">
+        <iframe src="https://www.youtube-nocookie.com/embed/_lEKPMeCM_E" title="شرح برنامج الباحث في القرآن الكريم" loading="lazy" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <p class="note"><a href="https://www.youtube.com/watch?v=_lEKPMeCM_E" rel="noopener">مشاهدة الشرح على YouTube</a></p>
+    </div>
+  </section>
+
+  <section id="data" class="data">
+    <div class="wrap">
+      <h2>ملفات الصور البيانية</h2>
+      <p class="lead">جداول Excel التي بُني منها تبويب البحث البلاغي، متاحة للباحثين. كل صورة فيها مسجّلة بسورتها وآيتها ولفظها ونوعها وعبارة المفسّر، مع الإحالة إلى الجزء والصفحة.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>ابن عاشور</h3>
+          <p class="meta">التحرير والتنوير</p>
+          <div class="count">6341 <small style="font-size:1rem;color:var(--muted)">صورة</small></div>
+          <p class="meta">في 3445 آية</p>
+          <a class="btn" href="https://www.mediafire.com/file/oi1h47id41264fr/التحرير_والتنوير_الصور_البيانية_مدقق.xlsx/file" rel="noopener">تحميل ملف Excel</a>
+        </div>
+        <div class="card">
+          <h3>الزمخشري</h3>
+          <p class="meta">الكشاف</p>
+          <div class="count">2244 <small style="font-size:1rem;color:var(--muted)">صورة</small></div>
+          <p class="meta">في 1759 آية</p>
+          <a class="btn" href="https://www.mediafire.com/file/3n9yu8e6v5nkxr1/الصور_البيانية_عند_الزمخشري.xlsx/file" rel="noopener">تحميل ملف Excel</a>
+        </div>
+        <div class="card">
+          <h3>الصابوني</h3>
+          <p class="meta">صفوة التفاسير</p>
+          <div class="count">649 <small style="font-size:1rem;color:var(--muted)">صورة</small></div>
+          <p class="meta">في 592 آية</p>
+          <a class="btn" href="https://www.mediafire.com/file/3288dxlgef9kje2/الصور_البيانية_عند_الصابوني.xlsx/file" rel="noopener">تحميل ملف Excel</a>
+        </div>
+      </div>
+      <p class="caveat"><strong>تنبيه منهجي:</strong> صور كل مفسّر مقصورة على ما سمّاه صراحةً أو حلّله. فغياب صورة عند مفسّر لا يعني أنه ينكرها، وإنما أنه لم ينصّ عليها.</p>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>التثبيت والتشغيل</h2>
+      <ol class="steps">
+        <li>حمّل الملف <code>Quran_Search_v3.exe</code> من الزر أعلاه، أو من الرابط الاحتياطي.</li>
+        <li>شغّله مباشرة، فيفتح البرنامج في المتصفح. ولا يحتاج إلى اتصال بالإنترنت.</li>
+        <li>إن ظهرت رسالة «قام Windows بحماية الكمبيوتر»، فاختر «مزيد من المعلومات» ثم «تشغيل على أي حال». تظهر هذه الرسالة لأن البرنامج غير موقَّع رقميًا، لا لخلل فيه.</li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>فكرة المشروع وإعداده: أ. د. يحيى شعيب، جامعة سعيدة «د. مولاي الطاهر».</p>
+    <p>نص المصحف من <a href="https://tanzil.net" rel="noopener">Tanzil</a> · البيانات الصرفية من Quranic Arabic Corpus وMASAQ · <a href="https://github.com/chyahia/al-bahith-quran" rel="noopener">المصادر والتراخيص</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
