@@ -310,7 +310,7 @@
             const x = blData.results[i];
             const rng = x.aya_to > x.aya ? `${x.aya}-${x.aya_to}` : x.aya;
             h += `<div class="card bl-aya" id="bl_aya_${i}">
-                    <div class="bl-aya-text">${i + 1}. ﴿ ${x.texts.map(blEsc).join(' ۝ ')} ﴾ <span class="bl-ref">[${blEsc(x.sura_name)}: ${rng}]</span></div>
+                    <div class="bl-aya-text">${i + 1}. ﴿ ${x.texts.map(blEsc).join(' ۝ ')} ﴾ <span class="bl-ref">${ayaLink(x.sura, x.aya, `[${x.sura_name}: ${rng}]`)}</span></div>
                     <div>${x.chips.map(c => blChip(c[0], c[1], c[2])).join('')}<span class="bl-details-btn" onclick="blToggle(${i})">تفاصيل ▾</span></div>
                     <div class="bl-det" id="bl_det_${i}" style="display: none;"></div>
                   </div>`;

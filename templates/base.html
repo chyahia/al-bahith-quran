@@ -194,11 +194,37 @@
             .tab-item.active { border-bottom: none; border-right: 4px solid var(--primary); }
             body.dark-mode .tab-item.active { border-right: 4px solid var(--accent); }
         }
+
+        /* الربط بين التبويبات (القسم 27 من السجل): الجذر يفتح ملفه، وموضع الآية يعرضها في سياقها */
+        .aya-link, .root-link { cursor: pointer; border-bottom: 1px dotted currentColor; }
+        .aya-link:hover, .root-link:hover { color: var(--primary) !important; border-bottom-style: solid; }
+        body.dark-mode .aya-link:hover, body.dark-mode .root-link:hover { color: var(--accent) !important; }
+        #ctxModal .modal-content { max-width: 820px; text-align: right; max-height: 85vh; display: flex; flex-direction: column; }
+        #ctxBody { overflow-y: auto; font-family: 'Amiri', serif; font-size: 22px; line-height: 2.1; padding: 5px 10px; }
+        #ctxBody .ctx-aya { padding: 4px 8px; border-radius: 6px; }
+        #ctxBody .ctx-aya.ctx-target { background: var(--highlight-bg); color: var(--highlight-text); }
+        #ctxBody .ctx-num { font-family: 'Tajawal', sans-serif; font-size: 14px; color: var(--accent); font-weight: bold; }
+        .ctx-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+        .ctx-btns button { background: var(--primary); color: #fff; border: none; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-family: 'Tajawal'; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="overlay">تم إغلاق البرنامج بنجاح. يمكنك إغلاق هذه النافذة.</div>
+
+
+<div id="ctxModal" class="modal-overlay" onclick="closeAyaContext(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="modal-close" onclick="closeAyaContext()">&times;</span>
+        <div id="ctxTitle" class="modal-title" style="font-size: 26px; text-align: center;"></div>
+        <div id="ctxBody"></div>
+        <div class="ctx-btns">
+            <button onclick="ayaContextMore(-1)">⬆ آيات قبلها</button>
+            <button onclick="ayaContextMore(1)">آيات بعدها ⬇</button>
+            <button style="background: #E67E22;" onclick="copyAyaContext()">نسخ 📋</button>
+        </div>
+    </div>
+</div>
 
 <div id="aboutModal" class="modal-overlay" onclick="closeAbout(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
@@ -234,6 +260,7 @@
         <button id="btn-tab-root_profile" class="tab-item" onclick="loadTab('root_profile')">ملف الجذر 🌳</button>
         <button id="btn-tab-general_stats" class="tab-item" onclick="loadTab('general_stats')">الإحصاء العام 📊</button>
         <button id="btn-tab-balagha" class="tab-item" onclick="loadTab('balagha')">البحث البلاغي 🎨</button>
+        <button id="btn-tab-wazn" class="tab-item" onclick="loadTab('wazn')">البحث بالوزن ⚖️</button>
         {% if show_admin %}
         <button id="btn-tab-consistency" class="tab-item" onclick="loadTab('consistency')">فحص التماسك (إداري) 🛠️</button>
         {% endif %}
@@ -250,12 +277,77 @@
     <div id="tab-content-root_profile" style="display: none;"></div>
     <div id="tab-content-general_stats" style="display: none;"></div>
     <div id="tab-content-balagha" style="display: none;"></div>
+    <div id="tab-content-wazn" style="display: none;"></div>
     <div id="tab-content-consistency" style="display: none;"></div>
 </div>
 
 <script>
+    // ================= الربط بين التبويبات (القسم 27 من السجل) =================
+    // الجذر بأي صيغة (أمن، ا م ن، ءمن) ← ملف الجذر؛ وهمزة الجذر تُكتب ألفًا في جدول الجذور
+    function normRootForProfile(r) {
+        return String(r || '').replace(/\s+/g, '').replace(/[أإآءؤئ]/g, 'ا').split('').join(' ');
+    }
+    async function openRootProfile(r) {
+        if (!r) return;
+        await loadTab('root_profile');
+        if (typeof loadRootProfile === 'function') {
+            if (typeof rpCompare !== 'undefined' && rpCompare && typeof toggleRootCompare === 'function') toggleRootCompare();
+            loadRootProfile(normRootForProfile(r));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    function rootLink(r, label) {
+        const safe = String(r || '').replace(/[^\u0600-\u06FF ]/g, '');
+        const d = document.createElement('div'); d.textContent = (label === undefined ? r : label);
+        return `<span class="root-link" title="فتح ملف الجذر" onclick="openRootProfile('${safe}')">${d.innerHTML}</span>`;
+    }
+    // موضع الآية ← نافذة فيها الآية بين ما قبلها وما بعدها
+    var ctxState = null;
+    function ayaLink(sura, aya, label) {
+        const d = document.createElement('div'); d.textContent = label;
+        return `<span class="aya-link" title="عرض الآية في سياقها" onclick="openAyaContext(${parseInt(sura)}, ${parseInt(aya)})">${d.innerHTML}</span>`;
+    }
+    async function openAyaContext(sura, aya) {
+        ctxState = { sura: sura, aya: aya, from: aya - 2, to: aya + 2, data: null };
+        document.getElementById('ctxModal').style.display = 'flex';
+        await renderAyaContext();
+    }
+    async function renderAyaContext() {
+        const st = ctxState, body = document.getElementById('ctxBody');
+        body.innerHTML = 'جاري التحميل... ⏳';
+        try {
+            const n = Math.max(st.aya - st.from, st.to - st.aya);
+            const res = await fetch(`/api/aya_context?sura=${st.sura}&aya=${st.aya}&n=${n}`);
+            const d = await res.json();
+            if (d.error) { body.textContent = 'خطأ: ' + d.error; return; }
+            st.data = d;
+            st.from = Math.max(1, st.from); st.to = Math.min(d.total, st.to);
+            document.getElementById('ctxTitle').textContent = `سورة ${d.sura_name} — الآية ${st.aya}`;
+            const esc = t => { const x = document.createElement('div'); x.textContent = t; return x.innerHTML; };
+            body.innerHTML = d.ayas.filter(a => a.aya >= st.from && a.aya <= st.to).map(a =>
+                `<div class="ctx-aya${a.aya === st.aya ? ' ctx-target' : ''}">${esc(a.text)} <span class="ctx-num">﴿${a.aya}﴾</span></div>`).join('');
+            const t = body.querySelector('.ctx-target');
+            if (t) t.scrollIntoView({ block: 'center' });
+        } catch (e) { body.textContent = 'تعذّر الاتصال بالخادم: ' + e; }
+    }
+    function ayaContextMore(dir) {
+        if (!ctxState) return;
+        if (dir < 0) ctxState.from = Math.max(1, ctxState.from - 5);
+        else ctxState.to = ctxState.to + 5;
+        renderAyaContext();
+    }
+    function copyAyaContext() {
+        if (!ctxState || !ctxState.data) return;
+        const d = ctxState.data;
+        const txt = d.ayas.filter(a => a.aya >= ctxState.from && a.aya <= ctxState.to)
+            .map(a => `${a.text} (${a.aya})`).join(' ') + ` [${d.sura_name}: ${ctxState.from}-${ctxState.to}]`;
+        navigator.clipboard.writeText(txt).catch(() => alert('تعذّر النسخ إلى الحافظة.'));
+    }
+    function closeAyaContext(e) { if (e) e.stopPropagation(); document.getElementById('ctxModal').style.display = 'none'; }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAyaContext(); });
+
     // تتبع التبويبات المحملة
-    const loadedTabs = { verbal: false, grammar: false, root_profile: false, general_stats: false, balagha: false, consistency: false };
+    const loadedTabs = { verbal: false, grammar: false, root_profile: false, general_stats: false, balagha: false, wazn: false, consistency: false };
 
     async function loadTab(tabName) {
         const containers = {
@@ -264,6 +356,7 @@
             root_profile: document.getElementById('tab-content-root_profile'),
             general_stats: document.getElementById('tab-content-general_stats'),
             balagha: document.getElementById('tab-content-balagha'),
+            wazn: document.getElementById('tab-content-wazn'),
             consistency: document.getElementById('tab-content-consistency'),
         };
         const buttons = {
@@ -272,6 +365,7 @@
             root_profile: document.getElementById('btn-tab-root_profile'),
             general_stats: document.getElementById('btn-tab-general_stats'),
             balagha: document.getElementById('btn-tab-balagha'),
+            wazn: document.getElementById('btn-tab-wazn'),
             consistency: document.getElementById('btn-tab-consistency'),
         };
 

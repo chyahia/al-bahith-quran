@@ -18,9 +18,11 @@ from root_count_check import run_root_count_comparison, export_root_count_excel
 from root_tag_check import run_root_tag_check, export_root_tag_excel
 from cross_morphology_check import run_cross_morphology, export_cross_morphology_excel
 from word_kind_check import run_word_kind_check, export_word_kind_excel
+from root_sources_check import run_root_sources_check, export_root_sources_excel
 from root_profile import build_root_profile, root_profile_ayahs, create_root_profile_docx, root_pair_stats
 from general_stats import public_stats, sura_profile, export_general_stats_excel
 from balagha import balagha_meta, search_balagha, aya_details, outside_list, create_balagha_docx
+from wazn import wazn_meta, search_wazn, create_wazn_docx
 import distribution
 
 
@@ -42,7 +44,7 @@ SHOW_ADMIN_TAB = False    # True = يظهر التبويب الإداري (لل�
 # مسارات التبويب الإداري وأدواته، تُحجب كلها حين تكون SHOW_ADMIN_TAB = False
 ADMIN_PATH_PREFIXES = ('/tab/consistency', '/api/consistency_', '/api/root_alignment_',
                        '/api/root_count_', '/api/root_tag_', '/api/cross_morph_',
-                       '/api/word_kind_')
+                       '/api/word_kind_', '/api/root_sources_')
 
 @app.before_request
 def block_admin_when_hidden():
@@ -424,6 +426,64 @@ def api_balagha_word():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/aya_context', methods=['GET'])
+def api_aya_context():
+    """الآية في سياقها (الربط بين التبويبات، القسم 27 من السجل): الآية وما قبلها وما بعدها من السورة نفسها."""
+    try:
+        sura = int(request.args.get('sura'))
+        aya = int(request.args.get('aya'))
+        n = max(0, min(int(request.args.get('n', 2)), 10))
+        conn = get_db_connection()
+        name = conn.execute('SELECT name FROM suras WHERE id = ?', (sura,)).fetchone()
+        total = conn.execute('SELECT COUNT(*) FROM ayas WHERE sura_id = ?', (sura,)).fetchone()[0]
+        rows = conn.execute('SELECT aya_num, text_tashkeel FROM ayas WHERE sura_id = ? AND aya_num BETWEEN ? AND ? '
+                            'ORDER BY aya_num', (sura, aya - n, aya + n)).fetchall()
+        conn.close()
+        return jsonify({'sura': sura, 'sura_name': name['name'] if name else str(sura), 'aya': aya, 'total': total,
+                        'ayas': [{'aya': r['aya_num'], 'text': strip_leading_basmala(r['text_tashkeel'], sura, r['aya_num'])}
+                                 for r in rows]})
+    except Exception as e:
+        print(f"Aya Context Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/tab/wazn')
+def tab_wazn():
+    return render_template('wazn.html')
+
+
+@app.route('/api/wazn_meta', methods=['GET'])
+def api_wazn_meta():
+    """«البحث بالوزن» (القسم 26 من السجل). قراءة فقط من quran_awzan.db."""
+    try:
+        return jsonify(wazn_meta())
+    except Exception as e:
+        print(f"Wazn Meta Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/wazn_search', methods=['POST'])
+def api_wazn_search():
+    try:
+        return jsonify(search_wazn(request.get_json() or {}, REV_ORDER_MAP))
+    except Exception as e:
+        print(f"Wazn Search Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/wazn_word', methods=['POST'])
+def api_wazn_word():
+    try:
+        data = request.get_json() or {}
+        f2 = data.get('filters2')
+        stream = create_wazn_docx(data.get('filters', data), REV_ORDER_MAP, data.get('charts'), f2)
+        return send_file(stream, as_attachment=True, download_name='مقارنة_الأوزان.docx' if f2 else 'البحث_بالوزن.docx',
+                         mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    except Exception as e:
+        print(f"Wazn Word Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/tab/consistency')
 def tab_consistency():
     """مسار داخلي (AJAX) لجلب واجهة فحص التماسك الداخلي فقط"""
@@ -593,6 +653,30 @@ def api_root_tag_export():
     except Exception as e:
         print(f"Root Tag Export Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/root_sources_check', methods=['GET'])
+def api_root_sources_check():
+    """فحص الجذور بين القواعد: root_words وword_lemmas وquran_awzan.db (القسم 28 من السجل، قراءة فقط)."""
+    try:
+        return jsonify(run_root_sources_check())
+    except Exception as e:
+        print(f"Root Sources Check Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/root_sources_export', methods=['GET'])
+def api_root_sources_export():
+    try:
+        wb = export_root_sources_excel(run_root_sources_check())
+        file_stream = io.BytesIO()
+        wb.save(file_stream)
+        file_stream.seek(0)
+        return send_file(file_stream, as_attachment=True, download_name='فحص_الجذور_بين_القواعد.xlsx',
+                         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    except Exception as e:
+        print(f"Root Sources Export Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/word_kind_check', methods=['GET'])
 def api_word_kind_check():

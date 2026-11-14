@@ -1,0 +1,488 @@
+<!-- ================= تبويب «البحث بالوزن» (القسمان 26 و29 من سجل تطوير البرنامج) ================= -->
+<div class="card" style="padding: 20px;">
+    <h2 style="color: var(--primary); margin-bottom: 8px;">البحث بالوزن الصرفي</h2>
+    <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7; margin-bottom: 12px;">
+        اختر نوع الوزن ثم الوزن، فتظهر كل الآيات التي فيها كلمة على ذلك الوزن، مع تمييز الكلمة داخل الآية وذكرها بعدها.
+        وفي «المقارنة» يُبحث عن وزنين معًا، لكلٍّ منهما لون في الآيات وخط في الرسم.
+        <br><span style="display: inline-block; margin-top: 4px; padding: 4px 10px; border-right: 3px solid #E65100; background: rgba(230, 81, 0, 0.06); font-size: 13px;">
+        <b>تنبيه:</b> الأوزان مستخرجة آليًا من التحليل الصرفي للمدونة القرآنية (Quranic Arabic Corpus) بمطابقة حروف الجذر على حروف الكلمة، ثم رُوجع ما شُكّ فيه.
+        وفي المعتل والمهموز والمضعّف يُعطى الوزن الأصلي (مستقيم ← مُسْتَفْعِل، ضالّ ← فاعِل، سماء ← فَعَال).
+        والكلمة الموسومة بـ <b>≈</b> وزنها تقريبي يحتاج مراجعة. والنقر على الجذر يفتح ملفه، وعلى موضع الآية يعرضها في سياقها.</span>
+        <br><span id="wz_info" style="font-size: 12px;"></span>
+    </p>
+
+    <div class="wz-grid">
+        <label><span><span class="wz-dot wz-dot1" style="display: none;"></span>نوع الوزن</span>
+            <select id="wz_kind" onchange="wzFillList(1)"></select>
+        </label>
+        <label>الوزن
+            <select id="wz_list" onchange="document.getElementById('wz_text').value = '';"></select>
+        </label>
+        <label>أو اكتب الوزن (بالحركات أو دونها)
+            <input id="wz_text" type="text" dir="rtl" list="wz_datalist" placeholder="مثال: فعلاء" onkeydown="if(event.key==='Enter') wzSearch();">
+            <datalist id="wz_datalist"></datalist>
+        </label>
+    </div>
+    <div id="wz_cmp_row" class="wz-grid" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);">
+        <label><span><span class="wz-dot wz-dot2"></span>نوع الوزن الثاني</span>
+            <select id="wz_kind2" onchange="wzFillList(2)"></select>
+        </label>
+        <label>الوزن الثاني
+            <select id="wz_list2" onchange="document.getElementById('wz_text2').value = '';"></select>
+        </label>
+        <label>أو اكتب الوزن الثاني
+            <input id="wz_text2" type="text" dir="rtl" list="wz_datalist2" placeholder="مثال: فعيل" onkeydown="if(event.key==='Enter') wzSearch();">
+            <datalist id="wz_datalist2"></datalist>
+        </label>
+    </div>
+    <div class="wz-grid" style="margin-top: 10px;">
+        <label>نوع الكلمة
+            <select id="wz_cat"><option value="all">الكل</option></select>
+        </label>
+        <label>السورة
+            <select id="wz_sura"><option value="all">كل السور</option></select>
+        </label>
+        <label>المكي والمدني
+            <select id="wz_period">
+                <option value="all">الكل</option>
+                <option value="meccan">المكي</option>
+                <option value="medinan">المدني</option>
+            </select>
+        </label>
+    </div>
+    <p id="wz_kind_note" style="font-size: 12px; color: #777; margin: 6px 0 0 0; line-height: 1.7;"></p>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px;">
+        <button class="btn-icon" style="background: var(--primary);" onclick="wzSearch()">بحث 🔎</button>
+        <button id="wz_cmp_btn" class="btn-icon" style="background: var(--accent);" onclick="wzToggleCompare()">+ مقارنة بوزن ثانٍ</button>
+        <button id="wz_word" class="btn-icon" style="background: #0D47A1; display: none;" onclick="wzWord()">تصدير Word 📄</button>
+        <button id="wz_copy" class="btn-icon" style="background: #E67E22; display: none;" onclick="wzCopy()">نسخ النتائج 📋</button>
+    </div>
+</div>
+
+<div id="wz_loader" style="display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--primary);">جاري البحث... ⏳</div>
+
+<div id="wz_body" style="display: none;">
+    <div class="card" style="padding: 16px 20px; margin-top: 15px;">
+        <div id="wz_summary" style="font-weight: bold; line-height: 1.9;"></div>
+    </div>
+    <div id="wz_scrollbox" class="wz-scroll wz-results-box">
+        <div id="wz_results"></div>
+        <div style="text-align: center; margin: 10px 0;">
+            <button id="wz_more" class="btn-icon" style="background: #455A64; display: none;" onclick="wzRenderMore()"></button>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 20px; margin-top: 15px;">
+        <h3 style="color: var(--primary); margin-top: 0;">التوزيع</h3>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+            <button id="wz_k_juz" class="btn-icon" style="background: var(--primary);" onclick="wzChartKind='juz'; wzDrawChart();">الأجزاء</button>
+            <button id="wz_k_mushaf" class="btn-icon" style="background: var(--primary);" onclick="wzChartKind='mushaf'; wzDrawChart();">ترتيب المصحف</button>
+            <button id="wz_k_revelation" class="btn-icon" style="background: var(--primary);" onclick="wzChartKind='revelation'; wzDrawChart();">ترتيب النزول</button>
+            <span style="width: 16px;"></span>
+            <button id="wz_t_bar" class="btn-icon" style="background: #455A64;" onclick="wzChartType='bar'; wzDrawChart();">أعمدة 📊</button>
+            <button id="wz_t_line" class="btn-icon" style="background: #455A64;" onclick="wzChartType='line'; wzDrawChart();">خطي 📈</button>
+            <span style="width: 16px;"></span>
+            <button id="wz_u_occ" class="btn-icon" style="background: #00695C;" onclick="wzChartUnit='occ'; wzDrawChart();">المواضع</button>
+            <button id="wz_u_ayat" class="btn-icon" style="background: #00695C;" onclick="wzChartUnit='ayat'; wzDrawChart();">الآيات</button>
+            <span style="width: 16px;"></span>
+            <span id="wz_scale_box"><button id="wz_s_count" class="btn-icon" style="background: #6D4C41;" onclick="wzChartScale='count'; wzDrawChart();">العدد</button>
+            <button id="wz_s_dens" class="btn-icon" style="background: #6D4C41;" onclick="wzChartScale='dens'; wzDrawChart();">لكل 100 آية</button></span>
+        </div>
+        <div style="height: 280px;"><canvas id="wz_chart"></canvas></div>
+        <p id="wz_chart_note" style="font-size: 12px; color: #777; line-height: 1.7; margin: 6px 0 0 0;"></p>
+        <div class="wz-two" style="margin-top: 16px;">
+            <div><h4 style="margin: 0 0 6px 0;">أكثر السور ورودًا <button class="wz-mini-btn" onclick="wzSurasAll = !wzSurasAll; wzRenderSuras();" id="wz_suras_btn"></button></h4>
+                 <div class="wz-scroll" style="max-height: 360px;"><table id="wz_suras" class="wz-table"></table></div></div>
+            <div><h4 style="margin: 0 0 6px 0;">أكثر الجذور ورودًا على الوزن <button class="wz-mini-btn" onclick="wzRootsAll = !wzRootsAll; wzRenderRoots();" id="wz_roots_btn"></button></h4>
+                 <div class="wz-scroll" style="max-height: 360px;"><div id="wz_roots"></div></div></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .wz-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 14px; }
+    .wz-grid label { display: flex; flex-direction: column; gap: 4px; font-weight: bold; font-size: 14px; }
+    .wz-grid select, .wz-grid input[type=text] { padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-family: 'Tajawal'; font-size: 15px; }
+    #wz_list, #wz_text, #wz_list2, #wz_text2 { font-family: 'Amiri', serif; font-size: 18px; }
+    .wz-grid select:disabled { opacity: 0.45; }
+    .wz-aya { padding: 14px 18px; margin-top: 10px; border-bottom: 1px dashed var(--border); }
+    .wz-aya-text { font-family: 'Amiri'; font-size: 21px; line-height: 2.1; }
+    .wz-ref { font-family: 'Tajawal'; font-size: 14px; color: #777; }
+    .wz-words { margin-top: 4px; font-size: 14px; }
+    .wz-chip { display: inline-block; border-radius: 12px; padding: 2px 10px; margin: 2px; border: 1px solid #fbc02d; background: var(--bg); }
+    .wz-chip.g2 { border-color: #e53935; }
+    .wz-chip b { font-family: 'Amiri'; font-size: 18px; color: var(--primary); }
+    .wz-chip .wz-meta { color: #777; font-size: 13px; }
+    .wz-chip.approx { border-style: dashed; }
+    .wz-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-inline-end: 6px; vertical-align: middle; }
+    .wz-dot1 { background: #fff176; border: 2px solid #fbc02d; }
+    .wz-dot2 { background: #ffcdd2; border: 2px solid #e53935; }
+    .wz-table { width: 100%; border-collapse: collapse; }
+    .wz-table th, .wz-table td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: center; }
+    .wz-table th { position: sticky; top: -8px; background: var(--card); }
+    .wz-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+    .wz-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .wz-results-box { max-height: 720px; margin-top: 12px; }
+    .wz-results-box .wz-aya:first-child { margin-top: 0; }
+    .wz-btn-off { background: #9e9e9e !important; }
+    .wz-mini-btn { font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
+    .wz-tag { display: inline-block; border-radius: 10px; padding: 0 8px; margin: 2px; font-size: 13px; font-weight: normal; background: var(--stats-bg); }
+</style>
+
+<script>
+    var wzMeta = null;
+    var wzData = null;              // نتيجة الوزن الأول
+    var wzData2 = null;             // نتيجة الوزن الثاني (في المقارنة)
+    var wzRows = [];                // الآيات مدموجة: لكل آية كلمات الوزنين
+    var wzCompare = false;
+    var wzShown = 0;
+    var wzPage = 100;
+    var wzChartKind = 'juz';        // juz | mushaf | revelation
+    var wzChartType = 'bar';
+    var wzChartUnit = 'occ';        // occ (المواضع) | ayat (الآيات)
+    var wzChartScale = 'dens';      // count | dens (لكل 100 آية)؛ الأجزاء بالعدد دائمًا
+    var wzChartObj = null;
+    var wzSurasAll = false;
+    var wzRootsAll = false;
+    var wzLastFilters = null;
+    var wzLastFilters2 = null;
+    var WZ_RGB = ['27, 94, 32', '198, 40, 40'];      // لون الوزن الأول والثاني في الرسم
+    var WZ_KIND_NOTES = {
+        'فعل': 'وزن الفعل في صيغة الماضي، ويشمل كل تصاريفه: «تَفَاعَلَ» تجمع تَسَاءَلَ ويَتَسَاءَلُونَ وتَظَاهَرُوا.',
+        'اسم': 'وزن الاسم، وجمع السلامة والمثنى مردودان إلى مفردهما (كافِرُونَ ← فاعِل، قائِمَات ← فاعِلَة). وجمع التكسير على وزنه (أنهار ← أَفْعَال).',
+        'صيغة': 'الوزن كما وردت الكلمة دون السوابق والضمائر وعلامة الإعراب: يَتَفَاعَل، يَسْتَفْعِل، فاعِلُون ...',
+    };
+
+    function wzEsc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : String(s); return d.innerHTML; }
+    function wzSfx(n) { return n === 2 ? '2' : ''; }
+
+    async function wzInit() {
+        try {
+            const res = await fetch('/api/wazn_meta');
+            const m = await res.json();
+            if (m.error) { document.getElementById('wz_info').innerHTML = '<b style="color:#c0392b;">' + wzEsc(m.error) + '</b>'; return; }
+            wzMeta = m;
+            const opts = m.kinds.map(k => `<option value="${wzEsc(k.value)}">${wzEsc(k.label)}</option>`).join('');
+            ['wz_kind', 'wz_kind2'].forEach(id => { document.getElementById(id).innerHTML = opts; document.getElementById(id).value = 'اسم'; });
+            document.getElementById('wz_cat').insertAdjacentHTML('beforeend', m.categories.map(c => `<option value="${wzEsc(c)}">${wzEsc(c)}</option>`).join(''));
+            const sura = document.getElementById('wz_sura');
+            m.suras.forEach(s => { sura.insertAdjacentHTML('beforeend', `<option value="${s.id}">${s.id}. ${wzEsc(s.name)}</option>`); });
+            document.getElementById('wz_info').textContent =
+                `الكلمات الموزونة في القاعدة: ${m.n_words}. أوزان الأفعال: ${m.lists['فعل'].length}، وأوزان الأسماء: ${m.lists['اسم'].length}. ` +
+                'المكي: ما ترتيب نزوله 86 فما دون، كبقية التبويبات.';
+            wzFillList(1);
+            wzFillList(2);
+        } catch (e) {
+            document.getElementById('wz_info').textContent = 'تعذّر الاتصال بالخادم: ' + e;
+        }
+    }
+
+    function wzFillList(n) {
+        if (!wzMeta) return;
+        const x = wzSfx(n);
+        const kind = document.getElementById('wz_kind' + x).value;
+        const list = wzMeta.lists[kind] || [];
+        document.getElementById('wz_list' + x).innerHTML = list.map(([w, c]) => `<option value="${wzEsc(w)}">${wzEsc(w)}  (${c})</option>`).join('');
+        document.getElementById('wz_datalist' + x).innerHTML = list.map(([w]) => `<option value="${wzEsc(w)}">`).join('');
+        document.getElementById('wz_text' + x).value = '';
+        if (n === 2 && list.length > 1) document.getElementById('wz_list2').selectedIndex = 1;   // وزن مختلف عن الأول افتراضيًا
+        wzCatCompat();
+    }
+
+    // نوع الكلمة لا معنى له إذا كان البحث كله في الأفعال
+    function wzCatCompat() {
+        const k1 = document.getElementById('wz_kind').value, k2 = document.getElementById('wz_kind2').value;
+        const allVerbs = k1 === 'فعل' && (!wzCompare || k2 === 'فعل');
+        const cat = document.getElementById('wz_cat');
+        cat.disabled = allVerbs;
+        if (allVerbs) cat.value = 'all';
+        let note = WZ_KIND_NOTES[k1] || '';
+        if (wzCompare && k2 !== k1) note += ' — والوزن الثاني: ' + (WZ_KIND_NOTES[k2] || '');
+        document.getElementById('wz_kind_note').textContent = note;
+    }
+
+    function wzToggleCompare() {
+        wzCompare = !wzCompare;
+        document.getElementById('wz_cmp_row').style.display = wzCompare ? 'grid' : 'none';
+        document.querySelector('.wz-dot1').style.display = wzCompare ? 'inline-block' : 'none';
+        const b = document.getElementById('wz_cmp_btn');
+        b.textContent = wzCompare ? '✕ إلغاء المقارنة' : '+ مقارنة بوزن ثانٍ';
+        b.style.background = wzCompare ? '#c0392b' : 'var(--accent)';
+        wzCatCompat();
+    }
+
+    function wzFilters(n) {
+        const x = wzSfx(n);
+        const typed = document.getElementById('wz_text' + x).value.trim();
+        return {
+            kind: document.getElementById('wz_kind' + x).value,
+            wazn: typed || document.getElementById('wz_list' + x).value,
+            category: document.getElementById('wz_cat').value,
+            sura: document.getElementById('wz_sura').value,
+            period: document.getElementById('wz_period').value,
+        };
+    }
+
+    async function wzFetch(f) {
+        const res = await fetch('/api/wazn_search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) });
+        return res.json();
+    }
+
+    // دمج نتيجتي الوزنين في قائمة آيات واحدة بترتيب المصحف
+    function wzMerge(d1, d2) {
+        const map = new Map();
+        const add = (d, g) => (d ? d.results : []).forEach(x => {
+            const k = x.sura * 1000 + x.aya;
+            if (!map.has(k)) map.set(k, { sura: x.sura, sura_name: x.sura_name, aya: x.aya, tokens: x.tokens, hl: [[], []], words: [[], []] });
+            const r = map.get(k);
+            r.hl[g] = x.hl; r.words[g] = x.words;
+        });
+        add(d1, 0); add(d2, 1);
+        return [...map.entries()].sort((a, b) => a[0] - b[0]).map(e => e[1]);
+    }
+
+    async function wzSearch() {
+        if (!wzMeta) return;
+        const f = wzFilters(1), f2 = wzCompare ? wzFilters(2) : null;
+        if (!f.wazn || (f2 && !f2.wazn)) { alert('اختر وزنًا أو اكتبه.'); return; }
+        wzLastFilters = f; wzLastFilters2 = f2;
+        document.getElementById('wz_loader').style.display = 'block';
+        document.getElementById('wz_body').style.display = 'none';
+        try {
+            const [d, d2] = await Promise.all([wzFetch(f), f2 ? wzFetch(f2) : Promise.resolve(null)]);
+            document.getElementById('wz_loader').style.display = 'none';
+            if (d.error) { alert('خطأ: ' + d.error); return; }
+            if (d2 && d2.error) { alert('خطأ في الوزن الثاني: ' + d2.error); return; }
+            wzData = d; wzData2 = d2;
+            wzRows = wzMerge(d, d2);
+            document.getElementById('wz_body').style.display = 'block';
+            document.getElementById('wz_summary').innerHTML = wzSummaryHtml(d, d2 ? 1 : null) + (d2 ? '<hr style="border: none; border-top: 1px dashed var(--border);">' + wzSummaryHtml(d2, 2) : '') +
+                (d2 ? `<br><span style="color: var(--primary);">آيات فيها الوزنان معًا: ${wzRows.filter(r => r.words[0].length && r.words[1].length).length}</span>` : '');
+            const show = wzRows.length > 0;
+            document.getElementById('wz_copy').style.display = show ? 'inline-block' : 'none';
+            document.getElementById('wz_word').style.display = show ? 'inline-block' : 'none';
+            document.getElementById('wz_results').innerHTML = show ? '' : '<div class="card" style="padding: 20px;">لا نتائج.</div>';
+            document.getElementById('wz_scrollbox').scrollTop = 0;
+            wzShown = 0;
+            wzRenderMore();
+            wzRenderSuras();
+            wzRenderRoots();
+            wzDrawChart();
+        } catch (e) {
+            document.getElementById('wz_loader').style.display = 'none';
+            alert('تعذّر الاتصال بالخادم: ' + e);
+        }
+    }
+
+    function wzSummaryHtml(d, n) {
+        const kindLabel = (wzMeta.kinds.find(k => k.value === d.kind) || {}).label || d.kind;
+        const dot = n ? `<span class="wz-dot wz-dot${n}"></span>` : '';
+        let h = `${dot}${wzEsc(kindLabel)}: <span style="font-family: Amiri; font-size: 24px; color: var(--primary);">${wzEsc(d.wazn)}</span>` +
+                ` — <span style="color: var(--primary); font-size: 18px;">${d.occurrences} موضعًا في ${d.ayahs} آية</span>`;
+        if (d.by_wazn.length > 1)
+            h += '<br><span style="font-weight: normal; font-size: 14px;">الأوزان المطابقة: </span>' +
+                 d.by_wazn.map(([w, c]) => `<span class="wz-tag" style="font-family: Amiri; font-size: 16px;">${wzEsc(w)} (${c})</span>`).join('');
+        if (d.by_category.length)
+            h += '<br><span style="font-weight: normal; font-size: 14px;">نوع الكلمة: </span>' +
+                 d.by_category.map(([c, k]) => `<span class="wz-tag">${wzEsc(c)} (${k})</span>`).join('');
+        return h;
+    }
+
+    function wzAyaHtml(x) {
+        const h1 = new Set(x.hl[0]), h2 = new Set(x.hl[1]);
+        return x.tokens.map((t, i) => h1.has(i) ? `<span class="highlight-0">${wzEsc(t)}</span>` :
+                                     (h2.has(i) ? `<span class="highlight-1">${wzEsc(t)}</span>` : wzEsc(t))).join(' ');
+    }
+
+    function wzChips(words, g) {
+        return words.map(w =>
+            `<span class="wz-chip${g ? ' g2' : ''}${w.approx ? ' approx' : ''}" title="${w.approx ? 'وزن تقريبي يحتاج مراجعة' : ''}"><b>${wzEsc(w.word)}</b> ` +
+            `<span class="wz-meta">${w.approx ? '≈ ' : ''}${wzEsc(w.wazn)} · جذر: ${rootLink(w.root)} · ${wzEsc(w.category)}</span></span>`).join('');
+    }
+
+    function wzRenderMore() {
+        const box = document.getElementById('wz_results');
+        const end = Math.min(wzRows.length, wzShown + wzPage);
+        let h = '';
+        for (let i = wzShown; i < end; i++) {
+            const x = wzRows[i];
+            h += `<div class="card wz-aya">
+                    <div class="wz-aya-text">${i + 1}. ﴿ ${wzAyaHtml(x)} ﴾ <span class="wz-ref">${ayaLink(x.sura, x.aya, `[${x.sura_name}: ${x.aya}]`)}</span></div>
+                    <div class="wz-words">${wzChips(x.words[0], 0)}${wzChips(x.words[1], 1)}</div>
+                  </div>`;
+        }
+        box.insertAdjacentHTML('beforeend', h);
+        wzShown = end;
+        const more = document.getElementById('wz_more');
+        more.style.display = wzShown < wzRows.length ? 'inline-block' : 'none';
+        more.textContent = `عرض المزيد (${wzRows.length - wzShown} آية باقية)`;
+    }
+
+    // ---------------------------------------------------------------- الإحصاء
+    function wzRenderSuras() {
+        const b = document.getElementById('wz_suras_btn');
+        let t, all;
+        if (!wzData2) {
+            all = wzData.top_suras;
+            const rows = wzSurasAll ? all : all.slice(0, 10);
+            const tot = all.reduce((a, x) => a + x.occurrences, 0) || 1;
+            t = '<tr><th>#</th><th>السورة</th><th>المواضع</th><th>الآيات</th><th>النسبة</th></tr>';
+            rows.forEach((x, i) => { t += `<tr><td>${i + 1}</td><td><b>${wzEsc(x.name)}</b></td><td>${x.occurrences}</td><td>${x.ayahs}</td><td>${(100 * x.occurrences / tot).toFixed(1)}%</td></tr>`; });
+            if (!rows.length) t += '<tr><td colspan="5">—</td></tr>';
+        } else {
+            const m = new Map();
+            [wzData, wzData2].forEach((d, g) => d.top_suras.forEach(x => {
+                if (!m.has(x.sura_id)) m.set(x.sura_id, { name: x.name, n: [0, 0] });
+                m.get(x.sura_id).n[g] = x.occurrences;
+            }));
+            all = [...m.values()].sort((a, b) => (b.n[0] + b.n[1]) - (a.n[0] + a.n[1]));
+            const rows = wzSurasAll ? all : all.slice(0, 10);
+            t = `<tr><th>#</th><th>السورة</th><th><span class="wz-dot wz-dot1"></span>${wzEsc(wzData.wazn)}</th><th><span class="wz-dot wz-dot2"></span>${wzEsc(wzData2.wazn)}</th><th>المجموع</th></tr>`;
+            rows.forEach((x, i) => { t += `<tr><td>${i + 1}</td><td><b>${wzEsc(x.name)}</b></td><td>${x.n[0]}</td><td>${x.n[1]}</td><td>${x.n[0] + x.n[1]}</td></tr>`; });
+            if (!rows.length) t += '<tr><td colspan="5">—</td></tr>';
+        }
+        document.getElementById('wz_suras').innerHTML = t;
+        b.style.display = all.length > 10 ? 'inline-block' : 'none';
+        b.textContent = wzSurasAll ? 'العشر الأوائل' : `كل السور (${all.length})`;
+    }
+
+    function wzRootsTable(d, dotN) {
+        const all = d.top_roots, rows = wzRootsAll ? all : all.slice(0, 15);
+        const tot = all.reduce((a, x) => a + x[1], 0) || 1;
+        let t = (dotN ? `<div style="font-weight: bold; margin: 6px 0;"><span class="wz-dot wz-dot${dotN}"></span><span style="font-family: Amiri; font-size: 19px;">${wzEsc(d.wazn)}</span></div>` : '') +
+                '<table class="wz-table"><tr><th>#</th><th>الجذر</th><th>المواضع</th><th>النسبة</th></tr>';
+        rows.forEach((x, i) => { t += `<tr><td>${i + 1}</td><td><b style="font-family: Amiri; font-size: 18px;">${rootLink(x[0])}</b></td><td>${x[1]}</td><td>${(100 * x[1] / tot).toFixed(1)}%</td></tr>`; });
+        if (!rows.length) t += '<tr><td colspan="4">—</td></tr>';
+        return t + '</table>';
+    }
+
+    function wzRenderRoots() {
+        const box = document.getElementById('wz_roots');
+        box.innerHTML = wzData2 ? `<div class="wz-two" style="gap: 10px;"><div>${wzRootsTable(wzData, 1)}</div><div>${wzRootsTable(wzData2, 2)}</div></div>`
+                                : wzRootsTable(wzData, null);
+        const n = Math.max(wzData.top_roots.length, wzData2 ? wzData2.top_roots.length : 0);
+        const b = document.getElementById('wz_roots_btn');
+        b.style.display = n > 15 ? 'inline-block' : 'none';
+        b.textContent = wzRootsAll ? 'الأوائل فقط' : `كل الجذور (${n})`;
+    }
+
+    // بيانات الرسم وجدوله بالمحور والوحدة والقياس المختارة (للرسم في التبويب ولتقرير Word)
+    function wzChartData(kind) {
+        const juz = kind === 'juz';
+        const dens = !juz && wzChartScale === 'dens';
+        const unit = (wzChartUnit === 'occ' ? 'المواضع' : 'الآيات') + (dens ? ' لكل 100 آية' : '');
+        const series = [wzData, wzData2].filter(Boolean).map((d, g) => {
+            const c = d.chart[kind];
+            const raw = wzChartUnit === 'occ' ? c.occ : c.counts;
+            return { label: wzData2 ? d.wazn : unit, rgb: WZ_RGB[g],
+                     vals: raw.map((n, i) => dens ? (c.totals[i] ? Math.round(10000 * n / c.totals[i]) / 100 : 0) : n) };
+        });
+        const labels = wzData.chart[kind].labels;
+        let note = juz ? 'الأجزاء متقاربة في طول النص، فالعدد فيها يبيّن أين يكثر الوزن وأين يقلّ عبر المصحف.'
+                       : (dens ? 'القيم مقسومة على عدد آيات القطاع × 100، لأن القطاعات غير متساوية الطول.' : '');
+        const rows = labels.map((lab, i) => [juz ? 'الجزء ' + lab : lab].concat(series.map(s => s.vals[i])));
+        if (!dens) rows.push(['المجموع'].concat(series.map(s => s.vals.reduce((a, v) => a + v, 0))));
+        const headers = [juz ? 'الجزء' : 'القطاع'].concat(wzData2 ? series.map(s => `${s.label} (${unit})`) : [unit]);
+        return { labels: labels, series: series, unit: unit, note: note, table: { headers: headers, rows: rows } };
+    }
+
+    function wzDatasets(d) {
+        return d.series.map(s => ({ label: s.label, data: s.vals, backgroundColor: `rgba(${s.rgb}, 0.7)`, borderColor: `rgb(${s.rgb})`,
+                                    borderWidth: 2, fill: false, tension: 0.25, pointRadius: 4 }));
+    }
+
+    function wzDrawChart() {
+        const canvas = document.getElementById('wz_chart');
+        if (!canvas || typeof Chart === 'undefined' || !wzData) return;
+        [['wz_k_juz', wzChartKind === 'juz'], ['wz_k_mushaf', wzChartKind === 'mushaf'], ['wz_k_revelation', wzChartKind === 'revelation'],
+         ['wz_t_bar', wzChartType === 'bar'], ['wz_t_line', wzChartType === 'line'],
+         ['wz_u_occ', wzChartUnit === 'occ'], ['wz_u_ayat', wzChartUnit === 'ayat'],
+         ['wz_s_count', wzChartScale === 'count'], ['wz_s_dens', wzChartScale === 'dens']]
+            .forEach(([id, on]) => document.getElementById(id).classList.toggle('wz-btn-off', !on));
+        const juz = wzChartKind === 'juz';
+        document.getElementById('wz_scale_box').style.display = juz ? 'none' : 'inline';
+        const d = wzChartData(wzChartKind);
+        document.getElementById('wz_chart_note').textContent = d.note;
+        if (wzChartObj) wzChartObj.destroy();
+        wzChartObj = new Chart(canvas.getContext('2d'), {
+            type: wzChartType,
+            data: { labels: d.labels, datasets: wzDatasets(d) },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { right: 35, left: 20 } },
+                plugins: { legend: { display: d.series.length > 1, labels: { font: { family: 'Amiri', size: 16 } } } },
+                scales: { x: { reverse: true, title: { display: juz, text: 'الأجزاء', font: { family: 'Tajawal' } },
+                               ticks: { font: { family: 'Tajawal' }, autoSkip: false } },
+                          y: { beginAtZero: true, title: { display: true, text: d.unit, font: { family: 'Tajawal' } }, ticks: { font: { family: 'Tajawal' } } } }
+            }
+        });
+    }
+
+    // صورة PNG للرسم (للتصدير إلى Word): لوحة خارج الصفحة بخلفية بيضاء ونص داكن، بنوع الرسم المختار
+    function wzChartImage(kind) {
+        if (typeof Chart === 'undefined' || !wzData) return null;
+        const cv = document.createElement('canvas');
+        cv.width = 1100; cv.height = 460;
+        cv.style.position = 'fixed'; cv.style.left = '-5000px';
+        document.body.appendChild(cv);
+        const white = { id: 'white', beforeDraw: ch => { const c = ch.ctx; c.save(); c.fillStyle = '#ffffff'; c.fillRect(0, 0, ch.width, ch.height); c.restore(); } };
+        const d = wzChartData(kind);
+        const ch = new Chart(cv.getContext('2d'), {
+            type: wzChartType, data: { labels: d.labels, datasets: wzDatasets(d) }, plugins: [white],
+            options: {
+                responsive: false, animation: false, devicePixelRatio: 1,
+                layout: { padding: { right: 35, left: 20, top: 10 } },
+                plugins: { legend: { display: d.series.length > 1, labels: { color: '#222', font: { family: 'Amiri', size: 18 } } },
+                           title: { display: true, text: kind === 'revelation' ? 'بحسب ترتيب النزول' : (kind === 'juz' ? 'بحسب الأجزاء' : 'بحسب ترتيب المصحف'),
+                                    color: '#1B5E20', font: { family: 'Tajawal', size: 18 } } },
+                scales: { x: { reverse: true, ticks: { color: '#222', font: { family: 'Tajawal', size: 13 }, autoSkip: false } },
+                          y: { beginAtZero: true, title: { display: true, text: d.unit, color: '#444', font: { family: 'Tajawal', size: 13 } },
+                               ticks: { color: '#222', font: { family: 'Tajawal', size: 13 } } } }
+            }
+        });
+        const url = cv.toDataURL('image/png');
+        ch.destroy();
+        cv.remove();
+        return { img: url, headers: d.table.headers, rows: d.table.rows, note: d.note, unit: d.unit };
+    }
+
+    // ---------------------------------------------------------------- التصدير والنسخ
+    async function wzWord() {
+        if (!wzLastFilters) return;
+        const btn = document.getElementById('wz_word'), old = btn.textContent;
+        btn.textContent = 'جاري التصدير... ⏳';
+        try {
+            const charts = { juz: wzChartImage('juz'), mushaf: wzChartImage('mushaf'), revelation: wzChartImage('revelation') };
+            const res = await fetch('/api/wazn_word', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ filters: wzLastFilters, filters2: wzLastFilters2, charts: charts }) });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const blob = await res.blob();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = wzLastFilters2 ? 'مقارنة_الأوزان.docx' : 'البحث_بالوزن.docx';
+            document.body.appendChild(a); a.click(); a.remove();
+            btn.textContent = 'تم التصدير ✔';
+        } catch (e) { btn.textContent = 'حدث خطأ!'; console.error(e); }
+        setTimeout(() => { btn.textContent = old; }, 2500);
+    }
+
+    function wzCopy() {
+        if (!wzData) return;
+        const L = ['الباحث في القرآن الكريم — ' + (wzData2 ? 'مقارنة الأوزان' : 'البحث بالوزن')];
+        [wzData, wzData2].filter(Boolean).forEach((d, g) => L.push((wzData2 ? `(${g + 1}) ` : '') + `${d.label}: ${d.occurrences} موضعًا في ${d.ayahs} آية`));
+        L.push('');
+        wzRows.forEach((x, i) => {
+            const ws = [0, 1].filter(g => x.words[g].length).map(g =>
+                (wzData2 ? `(${g + 1}) ` : '') + x.words[g].map(w => `${w.word} (${w.wazn})`).join('، ')).join(' | ');
+            L.push(`${i + 1}. ﴿ ${x.tokens.join(' ')} ﴾ [${x.sura_name}: ${x.aya}] — ${ws}`);
+        });
+        navigator.clipboard.writeText(L.join('\n')).then(() => {
+            const b = document.getElementById('wz_copy'), old = b.textContent;
+            b.textContent = 'تم النسخ ✔';
+            setTimeout(() => { b.textContent = old; }, 2000);
+        }).catch(() => alert('تعذّر النسخ إلى الحافظة.'));
+    }
+
+    wzInit();
+</script>

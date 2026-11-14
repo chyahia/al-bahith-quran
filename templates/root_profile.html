@@ -367,7 +367,7 @@
         let h = '';
         rows.forEach((r, k) => {
             h += `<p style="font-family:'Amiri'; font-size:21px; line-height:2;">${k + 1}. ﴿ ${rpEsc(r.text)} ﴾
-                  <span style="font-family:'Tajawal'; font-size:14px; color:#777;">[${rpEsc(r.sura_name)}:${r.aya}]</span></p>`;
+                  <span style="font-family:'Tajawal'; font-size:14px; color:#777;">${ayaLink(r.sura, r.aya, `[${r.sura_name}:${r.aya}]`)}</span></p>`;
         });
         box.innerHTML = h || 'لا توجد آيات مشتركة.';
         box.scrollTop = 0;
@@ -391,7 +391,7 @@
         let h = '';
         rows.forEach((r, k) => {
             h += `<p style="font-family:'Amiri'; font-size:21px; line-height:2;">${k + 1}. ﴿ ${rpEsc(r.text)} ﴾
-                  <span style="font-family:'Tajawal'; font-size:14px; color:#777;">[${rpEsc(r.sura_name)}:${r.aya}]</span>
+                  <span style="font-family:'Tajawal'; font-size:14px; color:#777;">${ayaLink(r.sura, r.aya, `[${r.sura_name}:${r.aya}]`)}</span>
                   ${r.word ? `<span class="rp-chip" style="font-size:16px; border-color: var(--accent);">الكلمة: ${rpEsc(r.word)}</span>` : ''}</p>`;
         });
         box.innerHTML = h;

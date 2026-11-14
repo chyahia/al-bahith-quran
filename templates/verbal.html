@@ -530,7 +530,7 @@
             
             html += `<div class="aya-card ${excludedIds.includes(item.id) ? 'excluded' : ''}" id="aya-${item.id}">
                 <strong>${startIndex + index + 1}.</strong><span> ﴿ ${textToDisplay} ﴾ </span>
-                <span class="aya-ref">[${item.sura_name}:${item.aya_num}]</span> ${excludeBtn}
+                <span class="aya-ref">${ayaLink(item.sura_id, item.aya_num, `[${item.sura_name}:${item.aya_num}]`)}</span> ${excludeBtn}
                 ${matchesHtml}
                 <textarea class="aya-note" placeholder="اكتب ملاحظاتك وتأملاتك البحثية حول هذه الآية..." onchange="ayahNotes[${item.id}] = this.value">${noteContent}</textarea>
             </div>`;

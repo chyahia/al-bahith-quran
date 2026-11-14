@@ -136,6 +136,26 @@
     </div>
 </div>
 
+<div class="card" style="padding: 20px; margin-top: 20px;">
+    <div style="margin-bottom: 15px;">
+        <h2 style="color: var(--primary); margin-bottom: 8px;">فحص الجذور بين القواعد</h2>
+        <p style="color: var(--text-muted, #666); font-size: 14px; line-height: 1.7;">
+            لكل كلمة يقارن الجذر المنسوب إليها في ثلاثة مصادر: <b>root_words</b> (جذور QUL، وعليها البحث بالجذر في التبويب 1
+            وملف الجذر والإحصاء العام)، و<b>word_lemmas</b> (المدونة 0.4، وعليها صيغ الجذر في ملف الجذر)، و<b>quran_awzan.db</b>
+            (النسخة العربية المصحَّحة من المدونة، وعليها تبويب البحث بالوزن). فيبيّن لماذا قد يختلف عدد جذر بين تبويبين.
+            الهمزة موحَّدة قبل المقارنة (أمن = امن). <b>لا يُعدّل شيئًا.</b>
+        </p>
+    </div>
+    <div class="actions-group" style="margin-bottom: 15px;">
+        <button id="btnRootSources" class="btn-icon" style="background: #6a1b9a;" onclick="runRootSourcesCheck()">فحص الجذور بين القواعد 🌳</button>
+        <button id="btnRootSourcesExport" class="btn-icon" style="background: #16a085;" onclick="exportRootSources()">تصدير للمراجعة 📤</button>
+    </div>
+    <div id="rootSourcesBox" style="display: none; margin-top: 15px; border: 1px solid var(--border); border-radius: 8px; padding: 15px; background: var(--card);">
+        <div id="rootSourcesLoader" style="display: none; text-align: center; padding: 15px; color: #6a1b9a; font-weight: bold;">جاري المقارنة... ⏳</div>
+        <div id="rootSourcesSummary" style="font-weight: bold; margin-bottom: 12px; line-height: 1.9;"></div>
+        <div id="rootSourcesTables"></div>
+    </div>
+</div>
 <script>
     async function runConsistencyCheck() {
         const box = document.getElementById('consistencyResultsBox');
@@ -574,5 +594,65 @@
 
     function exportWordKind() {
         window.location.href = '/api/word_kind_export';
+    }
+    async function runRootSourcesCheck() {
+        const box = document.getElementById('rootSourcesBox');
+        const loader = document.getElementById('rootSourcesLoader');
+        const summaryEl = document.getElementById('rootSourcesSummary');
+        const tablesEl = document.getElementById('rootSourcesTables');
+        box.style.display = 'block'; loader.style.display = 'block';
+        summaryEl.innerHTML = ''; tablesEl.innerHTML = '';
+        const esc = t => { const d = document.createElement('div'); d.textContent = (t === null || t === undefined) ? '' : String(t); return d.innerHTML; };
+        const th = t => `<th style="padding:6px; border-bottom:1px solid var(--border);">${t}</th>`;
+        try {
+            const response = await fetch('/api/root_sources_check');
+            const data = await response.json();
+            loader.style.display = 'none';
+            if (data.error) { summaryEl.innerHTML = `<span style="color:#e74c3c">حدث خطأ أثناء الفحص: ${esc(data.error)}</span>`; return; }
+            const s = data.summary;
+            summaryEl.innerHTML =
+                `مواضع لها جذر: QUL <b>${s.positions_qul}</b> — اللمّات <b>${s.positions_lemmas}</b> — قاعدة الأوزان <b>${s.positions_awzan}</b>` +
+                `<br>متفقة بين QUL وقاعدة الأوزان: <b>${s.agree}</b> — ` +
+                (s.diff_suspect === 0 ? `<span style="color:#27ae60">✅ لا اشتباه ترقيم</span>` : `<span style="color:#e67e22">⚠️ اشتباه ترقيم أو نسبة: <b>${s.diff_suspect}</b></span>`) +
+                ` — اختلاف تحليل: <b>${s.diff_analysis}</b> — جذر في QUL وحدها: <b>${s.only_qul}</b> — في الأوزان وحدها: <b>${s.only_awzan}</b>` +
+                `<br>جذور يختلف عدد مواضعها بين التبويبات: <b>${s.roots_differ}</b>` +
+                (s.shifted_ayat && s.shifted_ayat.length ? `<br><span style="font-weight:normal; font-size:13px;">وُحِّد الترقيم في آيات تدمج فيها المدونة كلمتين («بعدما»): ${esc(s.shifted_ayat.join('، '))}</span>` : '');
+            // جدول الجذور المختلفة العدد (أهم ما يحتاجه الباحث)
+            let h = `<div style="margin-top: 10px;"><h4 style="color:#6a1b9a; margin-bottom:8px;">الجذور التي يختلف عدد مواضعها (${data.roots.length})</h4>
+                <div style="max-height: 320px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">
+                <table style="width:100%; border-collapse: collapse; font-size: 14px; text-align: center;">
+                <thead style="position:sticky; top:0; background: var(--card);"><tr>${th('الجذر')}${th('التبويبات 1 و3 و4 (QUL)')}${th('اللمّات (المدونة 0.4)')}${th('تبويب الوزن')}${th('الفرق')}</tr></thead><tbody>`;
+            data.roots.forEach(r => {
+                h += `<tr style="border-bottom:1px solid var(--border);"><td style="padding:6px; font-family:'Traditional Arabic'; font-size:18px;">${rootLink(r.root)}</td>
+                      <td>${r.qul}</td><td>${r.lemmas}</td><td>${r.awzan}</td><td style="font-weight:bold; color:${r.diff > 0 ? '#2e7d32' : '#c62828'};">${r.diff > 0 ? '+' : ''}${r.diff}</td></tr>`;
+            });
+            h += `</tbody></table></div></div>`;
+            const MAX_ROWS = 400;
+            ['DIFF_SUSPECT', 'DIFF_ANALYSIS', 'ONLY_QUL', 'ONLY_AWZAN'].forEach(cat => {
+                const rows = data.issues.filter(i => i.category === cat);
+                if (!rows.length) return;
+                const color = cat === 'DIFF_SUSPECT' ? '#e67e22' : '#7f8c8d';
+                h += `<div style="margin-top: 18px;"><h4 style="color:${color}; margin-bottom:8px;">${esc(data.labels[cat])} (${rows.length})</h4>`;
+                if (rows.length > MAX_ROWS) h += `<p style="font-size:13px; margin-bottom:6px;">يُعرض أول ${MAX_ROWS} موضع؛ القائمة كاملة في ملف التصدير.</p>`;
+                h += `<div style="max-height: 320px; overflow-y: auto; border:1px solid var(--border); border-radius:6px;">
+                      <table style="width:100%; border-collapse: collapse; font-size: 14px;">
+                      <thead style="position:sticky; top:0; background: var(--card);"><tr>${th('الموضع')}${th('الكلمة')}${th('جذر QUL')}${th('جذر اللمّات')}${th('جذر قاعدة الأوزان')}</tr></thead><tbody>`;
+                rows.slice(0, MAX_ROWS).forEach(r => {
+                    h += `<tr style="border-bottom:1px solid var(--border);">
+                        <td style="padding:6px;">${ayaLink(r.sura_no, r.verse_no, r.sura_name + ':' + r.verse_no)} (كلمة ${r.word_no})</td>
+                        <td style="padding:6px; font-family:'Traditional Arabic'; font-size:17px;">${esc(r.word)}</td>
+                        <td style="padding:6px;">${esc(r.root_qul)}</td><td style="padding:6px;">${esc(r.root_lemmas)}</td><td style="padding:6px;">${esc(r.root_awzan)}</td></tr>`;
+                });
+                h += `</tbody></table></div></div>`;
+            });
+            tablesEl.innerHTML = h;
+        } catch (err) {
+            loader.style.display = 'none';
+            summaryEl.innerHTML = `<span style="color:#e74c3c">تعذّر الاتصال بالخادم: ${esc(err)}</span>`;
+        }
+    }
+
+    function exportRootSources() {
+        window.location.href = '/api/root_sources_export';
     }
 </script>

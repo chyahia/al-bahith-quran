@@ -478,7 +478,7 @@
                 <div class="aya-card" style="font-size: 22px;">
                     <strong>${index + 1}.</strong><span> ﴿ ${item.text_tashkeel} ﴾ </span>
                     <div style="margin-top: 15px; font-size: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                        <span style="color: var(--accent); font-weight: bold; font-size: 16px;">[${item.sura_name}:${item.verse_no}]</span>
+                        <span style="color: var(--accent); font-weight: bold; font-size: 16px;">${ayaLink(item.sura_no, item.verse_no, `[${item.sura_name}:${item.verse_no}]`)}</span>
                         ${groupLabel}
                         <span style="background-color: var(--highlight-bg); border: 2px solid var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 15px; font-weight: bold; color: var(--highlight-text);">الكلمة: ${item.word_text}</span>
                         ${item.morph_tag && item.morph_tag !== 'null' ? `<span class="tag" style="font-size:14px;">الصرف: ${morphAr}</span>` : ''}
