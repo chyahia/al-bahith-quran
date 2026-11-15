@@ -589,7 +589,7 @@ def main(src, dst, corrections_path='تصحيحات_الأوزان.xlsx'):
                 wz = 'ا' + wz               # ابْن ، اسْم بعد فصل همزة الوصل: فْع ← افْع
             if wz and 'PASS_PCPL' in tags and vf == 1 and root[-1] in WEAK:
                 wz = wz.replace('مَفْعِيل', 'مَفْعُول')   # مَرْضِيّ ، مَأْتِيّ ← مَفْعُول
-            if wz and pos == 'N' and root[-1] in WEAK and wz.endswith('ع') and len(wz) > 3:
+            if wz and pos == 'N' and root[-1] in WEAK and wz.endswith('ع') and len(wz) > 3 and not wz.startswith('افْ'):
                 # المنقوص: حُذفت لامه في الرسم (مُعْتَدٍ ، الْجَوَارِ ، مُنَادِ ، تَرَاضٍ) فيُردّ إلى وزنه التام
                 wz = wz + (DAMMA if 'VN' in tags else KASRA) + 'ل'
             if wz and pos == 'N' and root[-1] in WEAK and tags & {'P', 'MP', 'FP'} and wz == 'أَفْعِل':
