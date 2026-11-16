@@ -57,7 +57,10 @@ def tokenize(s, root0_hamza=False, hamza_alif_as_double=True):
         elif ch == 'ٔ':                      # همزة فوق حرف
             if units:
                 units[-1][0] = 'ء'
-        elif ch in 'ۥۦۭ۪ۣۢٓۜ۫ۨ۬ ':
+        elif ch in '\u06e5\u06e6':              # الواو والياء الصغيرتان: حرف مكتوب صغيرًا (يُحْيِۦ ، النَّبِيِّۦنَ)
+            if units and units[-1][0] != 'ه':     # وبعد الهاء صلةٌ لا حرف (بِهِۦ)
+                units.append(['و' if ch == '\u06e5' else 'ي', ''])
+        elif ch in 'ۭ۪ۣۢٓۜ۫ۨ۬ ':
             pass                                  # علامات ضبط لا أثر لها في الوزن
         elif ch == 'ٱ':
             units.append(['ا', ''])
@@ -134,7 +137,7 @@ def match_cost(u, r):
     return None
 
 
-def align(seq, root, ain_doubled=False):
+def align(seq, root, ain_doubled=False, is_verb=False):
     """أفضل مطابقة: لكل حرف جذر موضعه في الكلمة أو None (محذوف)."""
     n, m = len(seq), len(root)
     best = [None, 1e9]
@@ -183,11 +186,28 @@ def align(seq, root, ain_doubled=False):
             mc = match_cost(seq[p]['L'], r)
             # الحرف المشدد تضعيفٌ لعين الكلمة لا حرفان من الجذر (سَوَّى ← فَعَّلَ)، إلا في المضعّف
             # (ضالّ) وفي إدغام الفاء في العين (أَيَّام): فلا يُطابَق نصفه الثاني بحرف جذر آخر
+            later = any(match_cost(seq[x]['L'], r) is not None for x in range(p + 1, n))
             if (mc is not None and ri >= 2 and seq[p]['half'] == 1 and acc and acc[-1] == p - 1
-                    and seq[p - 1]['pair'] == seq[p]['pair'] and root[ri] != root[ri - 1]
+                    and seq[p - 1]['pair'] == seq[p]['pair']
                     and norm_hamza(seq[p]['L']) == norm_hamza(root[ri - 1])
-                    and (ain_doubled or any(match_cost(seq[x]['L'], r) is not None for x in range(p + 1, n)))):
-                mc = None                                  # قُوَّة (فُعْلَة) تبقى: لا حرف بعدها يقوم مقام اللام
+                    and ((root[ri] != root[ri - 1] and (ain_doubled or later) and (later or ain_doubled))
+                         or (root[ri] == root[ri - 1] and ain_doubled and later))):
+                # قُوَّة (فُعْلَة) تبقى: لا حرف بعدها يقوم مقام اللام؛ وأَسَّسَ ، يُقَلِّلُ (فَعَّلَ من المضعّف):
+                # المشدد تضعيف العين، واللام هي الحرف بعده
+                mc = None
+            # إبدال الواو تاءً: في الفاء (اتَّقى ، تَقْوى) وفي لام الاسم (أُخْت ، كِلْتَا)؛
+            # لا في العين (تَخْتَانُونَ ، اسْتَوَى)، ولا في لام الفعل لأن التاء بعده لاحقة (قَسَتْ)
+            if mc is not None and root[ri] == 'و' and seq[p]['L'] == 'ت' and (ri == 1 or (ri == m - 1 and is_verb)):
+                mc = None
+            # وفي الفعل لا تكون إلا تاءً مشددة (اتَّقى ، يَتَّقِي)؛ فتاء تَجِدُ وتَعِدُ حرف المضارعة والواو محذوفة
+            if mc is not None and is_verb and ri == 0 and root[0] == 'و' and seq[p]['L'] == 'ت' and seq[p]['pair'] is None:
+                mc = None
+            # وياء المضارعة في أول الفعل ليست فاءه (يَذَرُ ، يَضَعُ ← يَعَلُ)
+            if mc is not None and is_verb and ri == 0 and root[0] == 'و' and seq[p]['L'] == 'ي' and p == 0:
+                mc = None
+            # حرف العلة الأخير ألفًا في آخر الكلمة (تَرَاءَى ، دَعَا) أرجح من غيره
+            if mc is not None and ri == m - 1 and root[ri] in WEAK and seq[p]['L'] == 'ا' and p == n - 1:
+                mc = 0.3
             if mc is not None:
                 acc.append(p); rec(ri + 1, p + 1, acc, cost + mc); acc.pop()
         # حذف حرف الجذر: يجوز في المعتل والمهموز والمضعّف
@@ -335,7 +355,7 @@ def compute_wazn(stem, root, root0_hamza_double=True, act_pcpl=False, is_verb=Fa
                  ain_doubled=False):
     units = tokenize(stem, root0_hamza=norm_hamza(root[0]) == 'ء', hamza_alif_as_double=root0_hamza_double)
     seq = expand_shadda(units)
-    al, cost = align(seq, list(root), ain_doubled)
+    al, cost = align(seq, list(root), ain_doubled, is_verb)
     if al is None:
         return None, 99
     return strip_ending(render(seq, al, root, act_pcpl, is_verb, fay3il, plural)), cost
@@ -406,6 +426,29 @@ def verb_past_form(vf, root, lemma, root_bab=None):
             return root_bab[root]                        # اللمّة مبنية للمجهول: الباب من صيغ الماضي المعلوم للجذر
         return ('فَع' + m.group(1) + 'لَ') if m else 'فَعَلَ'
     return VF_PAST.get(vf)
+
+
+def fi3l_from_surface(vf, root, wz, lemma, perf):
+    """تصنّف المدونة بعض أفعال تفعّل وتفاعل وفعّل الناقصة في المجرد (VF:1): تَمَنَّى، تَجَلَّى، تَمَارَوْا، تَنَادَوْا، دَسَّاها.
+    فإن دلّت الصيغة نفسها على الزيادة أُخذ الباب منها."""
+    if vf != 1 or len(root) != 3 or not wz:
+        return None
+    w = wz.replace('\u0651\u064e', '\u064e\u0651')               # ترتيب الشدة مع الفتحة
+    if re.match('^(?:[يتنأ][َُ])?تَفَاع', w):
+        return 'تَفَاعَلَ'
+    if re.match('^(?:[يتنأ][َُ])?تَفَع[َ]?\u0651', w):
+        return 'تَفَعَّلَ'
+    if re.match('^(?:[يتنأ][َُ])?فَع[َ]?\u0651', w):
+        return 'فَعَّلَ'
+    if w.startswith('فَاعَل'):
+        return 'فَاعَلَ'
+    if re.match('^(?:ا|[يتنأ]َ)فْتَع', w):
+        return 'افْتَعَلَ'
+    if w.startswith('أَفْعَل'):
+        lw, _ = compute_wazn(lemma, root)
+        if perf or (lw and lw.startswith('أَفْعَل') and lemma.endswith(('ى', 'ا'))):
+            return 'أَفْعَلَ'                               # أَغْنَى ، أَرْسَى ، ما أَصْبَرَهُم (تعجّب)
+    return None
 
 
 def collect_babs(words):
@@ -566,8 +609,9 @@ def main(src, dst, corrections_path='تصحيحات_الأوزان.xlsx'):
                 continue
             vf = int(kv['VF']) if 'VF' in kv else (1 if pos == 'V' else None)
             double = not ('ACT_PCPL' in tags and vf == 1)        # آخِر (فاعِل) لا أَفْعَل
-            if double and pos == 'N' and not tags & {'P', 'MP', 'FP'} and vf in (None, 1):
-                double = 'noun_sing'
+            sound_pl = bool(re.search('(ين|ون|ات)[' + HARAKAT + ']*$', form))
+            if double and pos == 'N' and (not tags & {'P', 'MP', 'FP'} or sound_pl) and vf in (None, 1):
+                double = 'noun_sing'                             # آخِر ، آخِرَة ، آخِرِينَ ← فاعِل
             opts = dict(act_pcpl='ACT_PCPL' in tags, is_verb=pos == 'V',
                         fay3il=pos == 'N' and vf in (None, 1) and 'PASS_PCPL' not in tags,
                         plural=bool(tags & {'P', 'MP', 'FP'}),
@@ -583,6 +627,21 @@ def main(src, dst, corrections_path='تصحيحات_الأوزان.xlsx'):
                 wz = wz[:-1] + 'ة'          # التاء المفتوحة في الرسم العثماني (رَحْمَت)
             if wz and vf == 8 and 'تْف' in wz:
                 wz = wz.replace('تْف', 'فْت', 1)   # اتَّبَعَ = اتْتَبَعَ ← افْتَعَلَ
+            if wz and vf == 8 and root[1] == 'ت':
+                wz = re.sub('فْع(.)ت', lambda mm: 'فْت' + mm.group(1) + 'ع', wz, count=1)   # اقْتَتَلَ ← افْتَعَلَ
+            if wz and wz.startswith('سْت'):
+                wz = 'ا' + wz                # اسْتَكْبَرَ بعد فصل همزة الوصل (فَٱسْتَ...)
+            if (wz and 'PASS_PCPL' in tags and vf == 1 and root[1] in WEAK and root not in ('حيض', 'قيل')
+                    and re.match('مَفْع[' + DAMMA + KASRA + ']ل', wz)):
+                wz = 'مَفْعُول' + wz[len('مَفْعُل'):]   # مَزِيد ، مَلُوم ، مَكِيد (أصلها مَزْيُود ، مَلْوُوم) ← مَفْعُول
+            if wz and re.search('فَي(?:\u0651\u064f|\u064f\u0651)عُل', wz):
+                wz = re.sub('فَي(?:\u0651\u064f|\u064f\u0651)عُل', 'فَيْعُول', wz)   # قَيُّوم = قَيْوُوم
+            if wz and root[1] == root[2] and pos == 'N' and 'فَاعَل' in wz:
+                wz = wz.replace('فَاعَل', 'فَاعِل', 1)   # دَابَّة = دابِبَة ← فاعِلَة
+            if wz and root[1] == root[2] and vf == 3 and 'IMPF' in tags and 'PASS' not in tags and 'ُفَاعَل' in wz:
+                wz = wz.replace('ُفَاعَل', 'ُفَاعِل', 1)  # تُحَاجُّونَ = تُحاجِجُونَ ← تُفاعِلُونَ
+            if wz and vf == 7 and 'نْفْعَ' in wz:          # انْفَضَّ ، يَنْقَضَّ (مضعّف): الفاء على حركتها
+                wz = wz.replace('نْفْعَ', 'نْفَعَ' if 'ACT_PCPL' not in tags else 'نْفَعِ', 1)
             if wz and 'PN' in tags and cost > 3:
                 wz = None                   # علم لا يتضح وزنه (الله ، إبراهيم ...)
             if wz and SUKUN in wz[1:2] and wz[0] in 'فعل':
@@ -595,12 +654,32 @@ def main(src, dst, corrections_path='تصحيحات_الأوزان.xlsx'):
             if wz and pos == 'N' and root[-1] in WEAK and tags & {'P', 'MP', 'FP'} and wz == 'أَفْعِل':
                 wz = 'أَفْعُل'              # أَيْدِي ← أَفْعُل (جمع منقوص)
             wz_m = mufrad(wz, tags) if pos == 'N' else wz
+            if wz and pos == 'N' and root[-1] in WEAK and tags & {'MP', 'D', 'MD', 'FD'}:
+                # الصيغة كما وردت في جمع الناقص ومثناه: اللام محذوفة، وما بعدها حرف الجمع أو المثنى
+                # (مُصَلِّينَ ← مُفَعِّين ، مُرْجَوْنَ ← مُفْعَوْن ، فِئَتَانِ ← فِعَتَان)
+                letters = [ch for ch in form if '\u0621' <= ch <= '\u064a']
+                mm = re.search('ل([' + HARAKAT + ']*)(ن)$', wz)
+                if mm and len(letters) >= 2:
+                    ch = letters[-2]
+                    if ch in 'اوىي':
+                        ch = 'ي' if ch == 'ى' else ch
+                        wz = wz[:mm.start()] + ch + ('' if ch == 'ا' else mm.group(1)) + mm.group(2)
+            if pos == 'V' and wz and len(root) == 3 and root[1] == root[2]:
+                # المضعّف: الماضي المبني للمجهول أصله فُعِلَ (رُدِدَ ← رُدَّ)، والأمر أصله افْعُلْ (اُرْدُدْ ← رُدَّ)
+                if vf == 1 and 'PASS' in parts and 'PERF' in parts and wz.startswith('فُعَل'):
+                    wz = wz_m = 'فُعِل' + wz[len('فُعَل'):]
+                elif vf == 1 and 'IMPV' in parts and wz in ('فُعَل', 'فِعَل', 'فَعَل'):
+                    wz = wz_m = {'فُعَل': 'افْعُل', 'فِعَل': 'افْعِل', 'فَعَل': 'افْعَل'}[wz]
+                elif vf == 2 and wz == 'فَعَل':
+                    wz = wz_m = 'فَعِّل' if 'IMPV' in parts else 'فَعَّل'      # حَيُّوا ، حَيَّوْكَ
             conf = round(max(0.0, 1 - cost / 10), 2)
             corr = corrections.get(stem_key(pos, root, form))
             if corr:
                 st_c, wz_c = corr
                 if wz_c in ('-', '—', 'لا وزن'):      # لا وزن له (اسم فعل ونحوه)
                     wz = wz_m = None
+                elif wz_c and '|' in wz_c:            # «الوزن مفردًا | الصيغة كما وردت» (غَاوُونَ: فَاعِل | فَاعُون)
+                    wz_m, wz = [x.strip() for x in wz_c.split('|', 1)]
                 elif wz_c:                            # تصحيح المراجع
                     if pos == 'N':
                         if wz == wz_m:
@@ -615,7 +694,8 @@ def main(src, dst, corrections_path='تصحيحات_الأوزان.xlsx'):
                 lemma=kv.get('LEM'), pos=pos, category=category(tags, pos), vf=vf,
                 wazn=wz,                                    # وزن الكلمة كما وردت (دون السوابق واللواحق والإعراب)
                 wazn_mufrad=wz_m,
-                wazn_fi3l=verb_past_form(vf, root, kv.get('LEM', ''), root_bab) if pos == 'V' else None,
+                wazn_fi3l=(fi3l_from_surface(vf, root, wz, kv.get('LEM', ''), 'PERF' in tags)
+                           or verb_past_form(vf, root, kv.get('LEM', ''), root_bab)) if pos == 'V' else None,
                 passive=1 if 'PASS' in tags else 0,
                 confidence=conf,
                 tags='|'.join(parts)))
